@@ -43,6 +43,9 @@ const BASE = import.meta.env.BASE_URL;
 
 // 輕量 markdown render：將 SKILL.md body 簡易處理為 HTML
 // 不引入 markdown 解析庫,保持依賴最小化;適用於我們已知格式的 SKILL.md
+//
+// NOTE: 全站零斜體規則 — `*xxx*` 一律渲染為 <strong>(粗體),不再產生 <em>。
+// 如果 skill 作者習慣用 `*xxx*` 做 emphasis,效果等同 `**xxx**`。
 function renderMarkdown(md: string): string {
   let html = md;
 
@@ -66,8 +69,10 @@ function renderMarkdown(md: string): string {
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
   // Bold / italic
+  // 全站零斜體規則:`**xxx**` 與 `*xxx*` 都渲染為 <strong>,不再產生 <em>。
+  // 順序重要:先處理 ** 再處理 * 避免被 * 規則先吃掉。
   html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
 
   // Lists（簡化處理：連續行）
   html = html.replace(/(?:^- .+\n?)+/gm, (block) => {

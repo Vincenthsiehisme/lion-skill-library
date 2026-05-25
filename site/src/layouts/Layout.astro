@@ -17,6 +17,8 @@ const fullTitle = title === 'Lion Skill Library' ? title : `${title} — Lion Sk
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
     <title>{fullTitle}</title>
   </head>
@@ -25,7 +27,7 @@ const fullTitle = title === 'Lion Skill Library' ? title : `${title} — Lion Sk
       <div class="container site-header__inner">
         <div class="site-title">
           <a href={import.meta.env.BASE_URL}>
-            <span class="site-title__mark">§</span>Lion Skill Library
+            <span class="site-title__mark">▎</span>Lion Skill Library
           </a>
         </div>
         <nav class="site-nav">

@@ -46,7 +46,7 @@ const BASE = import.meta.env.BASE_URL;
     <section class="hero">
       <div class="hero__kicker">A reference index for AI workflows</div>
       <h1 class="hero__title">
-        Claude Skills, <em>curated</em><br />for the team.
+        Claude Skills, curated for the team.
       </h1>
       <p class="hero__sub">
         每個 Skill 是一組指令 + 參考檔案。安裝後，Claude 會在對應情境自動觸發。
@@ -91,33 +91,31 @@ const BASE = import.meta.env.BASE_URL;
           ))}
         </div>
 
-        <ul class="skill-list" id="skill-list">
+        <ul class="skill-grid" id="skill-list">
           {skills.map((skill) => {
             // description 太長截斷
             const shortDesc =
-              skill.description.length > 200
-                ? skill.description.slice(0, 200) + '…'
+              skill.description.length > 180
+                ? skill.description.slice(0, 180) + '…'
                 : skill.description;
 
             return (
-              <li class="skill-row" data-category={skill.category}>
-                <div class="skill-row__main">
-                  <h2 class="skill-row__title">
-                    <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
-                  </h2>
-                  <p class="skill-row__desc">{shortDesc}</p>
-                  <div class="skill-row__meta">
-                    <span class={`cat-badge cat-${skill.category}`}>
-                      {CATEGORY_LABELS[skill.category]}
-                    </span>
-                    <span>v{skill.version}</span>
-                    <span>{formatDate(skill.lastModified)}</span>
-                    {skill.tags && skill.tags.length > 0 && (
-                      <span>· {skill.tags.slice(0, 3).join(' / ')}</span>
-                    )}
-                  </div>
+              <li class="skill-card" data-category={skill.category}>
+                <h2 class="skill-card__title">
+                  <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
+                </h2>
+                <p class="skill-card__desc">{shortDesc}</p>
+                <div class="skill-card__meta">
+                  <span class={`cat-badge cat-${skill.category}`}>
+                    {CATEGORY_LABELS[skill.category]}
+                  </span>
+                  <span>v{skill.version}</span>
+                  <span>{formatDate(skill.lastModified)}</span>
                 </div>
-                <div class="skill-row__actions">
+                <div class="skill-card__actions">
+                  <span class="skill-card__version">
+                    {skill.tags && skill.tags.length > 0 ? skill.tags.slice(0, 2).join(' / ') : ''}
+                  </span>
                   <a
                     href={`${BASE}downloads/${skill.zipFilename}`}
                     class="btn-download"
@@ -159,7 +157,7 @@ const BASE = import.meta.env.BASE_URL;
 <script>
   // 篩選邏輯：純 vanilla，無框架依賴
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const rows = document.querySelectorAll<HTMLElement>('.skill-row');
+  const cards = document.querySelectorAll<HTMLElement>('.skill-card');
 
   filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -173,11 +171,11 @@ const BASE = import.meta.env.BASE_URL;
       btn.classList.add('is-active');
       btn.setAttribute('aria-selected', 'true');
 
-      rows.forEach((row) => {
-        if (filter === 'all' || row.dataset.category === filter) {
-          row.dataset.hidden = 'false';
+      cards.forEach((card) => {
+        if (filter === 'all' || card.dataset.category === filter) {
+          card.dataset.hidden = 'false';
         } else {
-          row.dataset.hidden = 'true';
+          card.dataset.hidden = 'true';
         }
       });
     });

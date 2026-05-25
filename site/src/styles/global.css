@@ -1,42 +1,38 @@
 /* ==========================================================================
    Lion Skill Library — global styles
    ==========================================================================
-   美學方向：editorial / archival
-   參考：學術期刊索引、技術文件、舊式 reference manual
-   特色：襯線標題、單欄主體、克制動態、深色文字、奶白底
-   絕對不要：紫色漸層、卡片陰影氾濫、generic SaaS aesthetic
+   美學方向：refined utility / Stripe Press 風
+   參考：乾淨的技術內網、現代 reference site
+   特色：Inter 黑體、極淺米白底、暖灰 accent、卡片網格、零斜體、克制動態
+   絕對不要：紫色漸層、卡片陰影氾濫、generic SaaS aesthetic、任何 italic
    ========================================================================== */
 
-@font-face {
-  font-family: 'Charter';
-  src: local('Charter'), local('Iowan Old Style'), local('Georgia');
-  font-display: swap;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ----- Palette: cream + ink + accent ----- */
-  --color-paper: #f6f2e8;       /* 奶白底,稍微帶米色 */
-  --color-paper-dim: #ece5d3;
-  --color-ink: #1c1816;          /* 主文字,接近黑但帶暖色 */
-  --color-ink-muted: #5a4f45;
-  --color-ink-faint: #8c7e6f;
-  --color-line: #c9bfa9;          /* 分隔線 */
-  --color-accent: #8b2c14;        /* 磚紅,克制使用,僅用於 hover / 強調 */
-  --color-accent-bg: #f3e8d8;
+  /* ----- Palette: warm-neutral utility ----- */
+  --color-paper: #fafaf8;          /* 極淺米白,不刺眼 */
+  --color-paper-dim: #f1f1ee;      /* 區塊背景 */
+  --color-ink: #1a1a1a;             /* 主文字,中性深 */
+  --color-ink-muted: #525252;       /* 副文字 + accent (Stripe Press 風) */
+  --color-ink-faint: #8a8a8a;       /* 元 metadata */
+  --color-line: #e2e2de;            /* 分隔線 */
+  --color-accent: #525252;          /* 暖灰 accent — 取代原本磚紅 */
+  --color-accent-bg: #ececea;       /* hover/active 區塊背景 */
 
-  /* category 標籤色 */
-  --color-cat-planning: #2a4a3a;
-  --color-cat-writing: #3d2f5a;
-  --color-cat-review: #6b3a14;
-  --color-cat-summary: #4a3a2a;
-  --color-cat-data: #1e3a52;
-  --color-cat-utility: #4a4a4a;
-  --color-cat-domain: #5a2a3a;
+  /* category 標籤色:全部改為中性灰階階層,移除 editorial 紫紅系 */
+  --color-cat-planning: #2e2e2e;
+  --color-cat-writing:  #3d3d3d;
+  --color-cat-review:   #4a4a4a;
+  --color-cat-summary:  #575757;
+  --color-cat-data:     #2e2e2e;
+  --color-cat-utility:  #404040;
+  --color-cat-domain:   #4a4a4a;
 
   /* ----- Typography ----- */
-  --font-display: 'Charter', 'Iowan Old Style', 'Apple Garamond', Georgia, 'Source Han Serif TC', 'Noto Serif TC', serif;
-  --font-body: 'Charter', 'Iowan Old Style', Georgia, 'Source Han Serif TC', 'Noto Serif TC', serif;
-  --font-mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono:    'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
   /* ----- Spacing scale ----- */
   --space-xs: 0.25rem;
@@ -50,19 +46,29 @@
   /* ----- Layout ----- */
   --max-width: 72rem;
   --max-width-prose: 42rem;
+
+  /* ----- Brand mark ----- */
+  --brand-mark-color: #1a1a1a;     /* ▎ 直線重點 mark,黑色與標題對齊 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-paper: #14110d;
-    --color-paper-dim: #1c1814;
-    --color-ink: #ece5d3;
-    --color-ink-muted: #a89c87;
-    --color-ink-faint: #6b6051;
-    --color-line: #3a3328;
-    --color-accent: #d4663d;
-    --color-accent-bg: #2a1f14;
+    --color-paper:      #0f0f0f;
+    --color-paper-dim:  #1a1a1a;
+    --color-ink:        #ededed;
+    --color-ink-muted:  #a3a3a3;
+    --color-ink-faint:  #707070;
+    --color-line:       #2a2a2a;
+    --color-accent:     #a3a3a3;
+    --color-accent-bg:  #1f1f1f;
+    --brand-mark-color: #ededed;
   }
+}
+
+/* ----- Global hard rule: NO italics anywhere -----
+   全站零斜體。即使瀏覽器預設給 <em>/<address>/<i>/<cite> 等斜體,也覆蓋。 */
+em, i, cite, address, var, dfn, blockquote {
+  font-style: normal;
 }
 
 * {
@@ -82,7 +88,7 @@ html {
 
 body {
   min-height: 100vh;
-  font-size: 17px;
+  font-size: 16px;
 }
 
 /* ----- Typography primitives ----- */
@@ -90,13 +96,13 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
 }
 
-h1 { font-size: 3rem; letter-spacing: -0.025em; }
-h2 { font-size: 1.875rem; }
-h3 { font-size: 1.25rem; }
+h1 { font-size: 2.75rem; letter-spacing: -0.025em; font-weight: 700; }
+h2 { font-size: 1.625rem; }
+h3 { font-size: 1.125rem; }
 
 p { color: var(--color-ink); }
 
@@ -122,7 +128,7 @@ code, pre, .mono {
 code {
   background: var(--color-paper-dim);
   padding: 0.1em 0.35em;
-  border-radius: 2px;
+  border-radius: 3px;
   border: 1px solid var(--color-line);
 }
 
@@ -161,19 +167,25 @@ hr {
 
 .site-title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 .site-title a {
   text-decoration: none;
   color: var(--color-ink);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
 }
 
 .site-title__mark {
-  color: var(--color-accent);
-  margin-right: 0.3em;
+  color: var(--brand-mark-color);
+  font-weight: 700;
+  display: inline-block;
+  /* ▎ 視覺微調:略往下 align */
+  transform: translateY(0.05em);
 }
 
 .site-nav {
@@ -189,14 +201,14 @@ hr {
 }
 
 .site-nav a:hover {
-  color: var(--color-accent);
+  color: var(--color-ink);
 }
 
 .site-footer {
   border-top: 1px solid var(--color-line);
   margin-top: var(--space-3xl);
   padding: var(--space-xl) 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--color-ink-faint);
 }
 
@@ -219,25 +231,23 @@ hr {
   letter-spacing: 0.2em;
   color: var(--color-ink-faint);
   margin-bottom: var(--space-md);
+  font-weight: 500;
 }
 
 .hero__title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: clamp(2.25rem, 4.5vw, 3.5rem);
   letter-spacing: -0.03em;
-  line-height: 1.05;
+  line-height: 1.1;
   margin-bottom: var(--space-md);
-}
-
-.hero__title em {
-  font-style: italic;
-  color: var(--color-accent);
+  font-weight: 700;
 }
 
 .hero__sub {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   color: var(--color-ink-muted);
   max-width: 36rem;
   margin-bottom: var(--space-lg);
+  line-height: 1.6;
 }
 
 .hero__meta {
@@ -268,19 +278,20 @@ hr {
 }
 
 .filter-btn {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 0.8125rem;
+  font-weight: 500;
   background: transparent;
   border: 1px solid var(--color-line);
   color: var(--color-ink-muted);
   padding: var(--space-xs) var(--space-md);
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 4px;
   transition: all 0.15s ease;
 }
 
 .filter-btn:hover {
-  border-color: var(--color-ink);
+  border-color: var(--color-ink-muted);
   color: var(--color-ink);
 }
 
@@ -294,81 +305,109 @@ hr {
   margin-left: 0.4em;
   color: var(--color-ink-faint);
   font-size: 0.75rem;
+  font-weight: 400;
 }
 
 .filter-btn.is-active .filter-btn__count {
   color: var(--color-paper-dim);
 }
 
-/* ----- Skill list (rows, not cards) ----- */
-.skill-list {
+/* ==========================================================================
+   Skill grid — 卡片網格(取代列式 row 布局)
+   ========================================================================== */
+.skill-grid {
   list-style: none;
-}
-
-.skill-row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: baseline;
-  gap: var(--space-lg);
-  padding: var(--space-lg) 0;
-  border-bottom: 1px solid var(--color-line);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
 }
 
-.skill-row[data-hidden="true"] {
+.skill-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: var(--space-lg);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.skill-card:hover {
+  border-color: var(--color-ink-muted);
+}
+
+.skill-card[data-hidden="true"] {
   display: none;
 }
 
-.skill-row__main {
-  min-width: 0;
-}
-
-.skill-row__title {
+.skill-card__title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  margin-bottom: var(--space-xs);
-  letter-spacing: -0.015em;
+  margin-bottom: var(--space-sm);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
-.skill-row__title a {
+.skill-card__title a {
   text-decoration: none;
   color: var(--color-ink);
 }
 
-.skill-row__title a:hover {
-  color: var(--color-accent);
+.skill-card__title a:hover {
+  color: var(--color-ink-muted);
 }
 
-.skill-row__desc {
+.skill-card__desc {
   color: var(--color-ink-muted);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   line-height: 1.55;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex-grow: 1;
 }
 
-.skill-row__meta {
+.skill-card__meta {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-ink-faint);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.skill-card__actions {
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.skill-card__version {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--color-ink-faint);
-  flex-wrap: wrap;
 }
 
+/* category badge — 統一灰階版 */
 .cat-badge {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   padding: 2px 8px;
-  border-radius: 2px;
-  color: white;
+  border-radius: 3px;
+  color: #fafaf8;
+  font-weight: 500;
 }
 
 .cat-planning  { background: var(--color-cat-planning); }
@@ -379,23 +418,17 @@ hr {
 .cat-utility   { background: var(--color-cat-utility); }
 .cat-domain    { background: var(--color-cat-domain); }
 
-.skill-row__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-xs);
-}
-
 /* ----- Download button ----- */
 .btn-download {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 0.8125rem;
+  font-weight: 500;
   background: var(--color-ink);
   color: var(--color-paper);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--color-ink);
   text-decoration: none;
-  border-radius: 2px;
+  border-radius: 4px;
   transition: all 0.15s ease;
   white-space: nowrap;
   display: inline-flex;
@@ -404,14 +437,16 @@ hr {
 }
 
 .btn-download:hover {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--color-ink-muted);
+  border-color: var(--color-ink-muted);
   color: var(--color-paper);
+  text-decoration: none;
 }
 
 .btn-download__size {
-  font-size: 0.75rem;
-  opacity: 0.7;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  opacity: 0.75;
 }
 
 /* ----- Empty state ----- */
@@ -419,7 +454,8 @@ hr {
   text-align: center;
   padding: var(--space-3xl) 0;
   color: var(--color-ink-faint);
-  font-style: italic;
+  /* 零斜體 — 改用 letter-spacing 與 font-weight 區隔 */
+  letter-spacing: 0.02em;
 }
 
 /* ----- Skill detail page ----- */
@@ -433,19 +469,20 @@ hr {
 }
 
 .detail-back:hover {
-  color: var(--color-accent);
+  color: var(--color-ink);
 }
 
 .detail-header {
   margin-bottom: var(--space-2xl);
   padding-bottom: var(--space-lg);
-  border-bottom: 2px solid var(--color-ink);
+  border-bottom: 1px solid var(--color-ink);
 }
 
 .detail-title {
-  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-size: clamp(2rem, 4.5vw, 3rem);
   letter-spacing: -0.025em;
   margin-bottom: var(--space-md);
+  font-weight: 700;
 }
 
 .detail-meta {
@@ -460,15 +497,17 @@ hr {
 
 .detail-meta strong {
   color: var(--color-ink);
+  font-weight: 600;
 }
 
 .detail-description {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   color: var(--color-ink-muted);
   margin-bottom: var(--space-lg);
-  font-style: italic;
+  /* 零斜體 — 改用左 border + padding 區隔,不再 italic */
   border-left: 3px solid var(--color-line);
   padding-left: var(--space-md);
+  line-height: 1.6;
 }
 
 .detail-actions {
@@ -479,8 +518,8 @@ hr {
 }
 
 .btn-download--large {
-  font-size: 1rem;
-  padding: var(--space-md) var(--space-lg);
+  font-size: 0.9375rem;
+  padding: var(--space-sm) var(--space-lg);
 }
 
 .related-skills {
@@ -533,7 +572,7 @@ hr {
   background: var(--color-paper-dim);
   border: 1px solid var(--color-line);
   padding: var(--space-md);
-  border-radius: 2px;
+  border-radius: 4px;
   overflow-x: auto;
   margin-bottom: var(--space-md);
   font-size: 0.875rem;
@@ -551,14 +590,20 @@ hr {
   padding-left: var(--space-md);
   margin: var(--space-md) 0;
   color: var(--color-ink-muted);
-  font-style: italic;
+  /* 零斜體 — 已在最上方全域規則覆蓋 */
+}
+
+/* skill-body 內 strong 標示(取代原本 em 斜體強調) */
+.skill-body strong {
+  color: var(--color-ink);
+  font-weight: 600;
 }
 
 /* ----- Install instructions ----- */
 .install-box {
   background: var(--color-paper-dim);
   border: 1px solid var(--color-line);
-  border-radius: 2px;
+  border-radius: 4px;
   padding: var(--space-lg);
   margin-top: var(--space-lg);
 }
@@ -570,6 +615,7 @@ hr {
   letter-spacing: 0.15em;
   color: var(--color-ink-faint);
   margin-bottom: var(--space-md);
+  font-weight: 500;
 }
 
 .install-box ol {
@@ -582,10 +628,11 @@ hr {
 
 /* ----- Responsive ----- */
 @media (max-width: 720px) {
-  body { font-size: 16px; }
-  .hero__title { font-size: 2.5rem; }
-  .skill-row { grid-template-columns: 1fr; }
-  .skill-row__actions { align-items: flex-start; flex-direction: row; }
+  body { font-size: 15px; }
+  .hero__title { font-size: 2rem; }
+  .skill-grid {
+    grid-template-columns: 1fr;
+  }
   .site-header__inner { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
   .site-nav { font-size: 0.8125rem; }
 }
