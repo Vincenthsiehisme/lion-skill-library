@@ -1,0 +1,185 @@
+---
+import Layout from '../layouts/Layout.astro';
+import catalog from '../data/skills.generated.json';
+import type { SkillMeta } from '../types';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  planning: '規劃',
+  writing: '寫作',
+  review: '審查',
+  summary: '沉澱',
+  data: '資料',
+  utility: '工具',
+  domain: '領域',
+};
+
+const skills = catalog.skills as SkillMeta[];
+
+// 計算每個 category 的數量
+const categoryCount: Record<string, number> = {};
+for (const s of skills) {
+  categoryCount[s.category] = (categoryCount[s.category] || 0) + 1;
+}
+
+const categories = Object.keys(CATEGORY_LABELS).filter((c) => categoryCount[c] > 0);
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toISOString().slice(0, 10);
+}
+
+const totalCount = skills.length;
+const generatedAt = catalog.generatedAt ? formatDate(catalog.generatedAt) : '';
+const BASE = import.meta.env.BASE_URL;
+---
+
+<Layout>
+  <div class="container">
+    <section class="hero">
+      <div class="hero__kicker">A reference index for AI workflows</div>
+      <h1 class="hero__title">
+        Claude Skills, <em>curated</em><br />for the team.
+      </h1>
+      <p class="hero__sub">
+        每個 Skill 是一組指令 + 參考檔案。安裝後，Claude 會在對應情境自動觸發。
+        下載 zip、放進 <code>~/.claude/skills/</code>、重啟 Claude — 完成。
+      </p>
+      <div class="hero__meta">
+        <span><strong>{totalCount}</strong> skills indexed</span>
+        <span>Last build · <strong>{generatedAt}</strong></span>
+        <span>Internal · MIT-licensed</span>
+      </div>
+    </section>
+
+    {totalCount === 0 ? (
+      <div class="empty">
+        <p>目錄目前為空。第一個 Skill 上架後會自動出現在這裡。</p>
+        <p style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.875rem;">
+          maintainer note: push a folder under <code>skills/</code> to populate.
+        </p>
+      </div>
+    ) : (
+      <>
+        <div class="filter-bar" role="tablist" aria-label="Filter by category">
+          <button
+            type="button"
+            class="filter-btn is-active"
+            data-filter="all"
+            role="tab"
+            aria-selected="true"
+          >
+            All<span class="filter-btn__count">{totalCount}</span>
+          </button>
+          {categories.map((cat) => (
+            <button
+              type="button"
+              class="filter-btn"
+              data-filter={cat}
+              role="tab"
+              aria-selected="false"
+            >
+              {CATEGORY_LABELS[cat]}<span class="filter-btn__count">{categoryCount[cat]}</span>
+            </button>
+          ))}
+        </div>
+
+        <ul class="skill-list" id="skill-list">
+          {skills.map((skill) => {
+            // description 太長截斷
+            const shortDesc =
+              skill.description.length > 200
+                ? skill.description.slice(0, 200) + '…'
+                : skill.description;
+
+            return (
+              <li class="skill-row" data-category={skill.category}>
+                <div class="skill-row__main">
+                  <h2 class="skill-row__title">
+                    <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
+                  </h2>
+                  <p class="skill-row__desc">{shortDesc}</p>
+                  <div class="skill-row__meta">
+                    <span class={`cat-badge cat-${skill.category}`}>
+                      {CATEGORY_LABELS[skill.category]}
+                    </span>
+                    <span>v{skill.version}</span>
+                    <span>{formatDate(skill.lastModified)}</span>
+                    {skill.tags && skill.tags.length > 0 && (
+                      <span>· {skill.tags.slice(0, 3).join(' / ')}</span>
+                    )}
+                  </div>
+                </div>
+                <div class="skill-row__actions">
+                  <a
+                    href={`${BASE}downloads/${skill.zipFilename}`}
+                    class="btn-download"
+                    download
+                  >
+                    ↓ Download
+                    <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
+                  </a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    )}
+
+    <section id="how-to-install" style="margin-top: 6rem; padding-top: 3rem; border-top: 1px solid var(--color-line);">
+      <h2 style="margin-bottom: 1.5rem;">How to install</h2>
+      <div class="install-box">
+        <div class="install-box__title">three steps · one minute</div>
+        <ol>
+          <li>從上方列表點 <strong>Download</strong> 按鈕，拿到 <code>.zip</code></li>
+          <li>解壓後，把整個 skill 資料夾放到：
+            <ul style="margin-top: 0.5rem;">
+              <li>macOS / Linux: <code>~/.claude/skills/</code></li>
+              <li>Windows: <code>%USERPROFILE%\.claude\skills\</code></li>
+            </ul>
+          </li>
+          <li>重啟 Claude。下次符合觸發條件時會自動載入。</li>
+        </ol>
+        <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--color-ink-faint);">
+          目錄不存在就建一個。安裝後可以在 Claude 對話中問「列出我已安裝的 skill」確認。
+        </p>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  // 篩選邏輯：純 vanilla，無框架依賴
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+  const rows = document.querySelectorAll<HTMLElement>('.skill-row');
+
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter;
+      if (!filter) return;
+
+      filterBtns.forEach((b) => {
+        b.classList.remove('is-active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-selected', 'true');
+
+      rows.forEach((row) => {
+        if (filter === 'all' || row.dataset.category === filter) {
+          row.dataset.hidden = 'false';
+        } else {
+          row.dataset.hidden = 'true';
+        }
+      });
+    });
+  });
+</script>

@@ -1,0 +1,72 @@
+---
+import Layout from '../layouts/Layout.astro';
+const BASE = import.meta.env.BASE_URL;
+---
+
+<Layout title="About" description="關於 Lion Skill Library">
+  <div class="container container-prose">
+    <a href={BASE} class="detail-back">← back to index</a>
+
+    <header class="detail-header">
+      <h1 class="detail-title">About</h1>
+      <p class="detail-description">
+        關於這個 platform 是什麼、為什麼存在、怎麼運作。
+      </p>
+    </header>
+
+    <article class="skill-body">
+      <h2>這是什麼</h2>
+      <p>
+        Lion Skill Library 是雄獅內部的 Claude Skill 分發平台。每個 Skill 是一組
+        <strong>給 AI 看的指令 + 參考檔案</strong>,安裝到自己的 Claude 之後,
+        在符合條件的對話情境會自動觸發,讓 Claude 用設計好的方式回應。
+      </p>
+      <p>
+        例如:寫 PRD 時自動套用結構化框架、審查方案時自動引入顧問批判模式、
+        查資料庫 schema 時自動載入對應字典。Skill 是 Anthropic 在 2025 年推出的標準格式。
+      </p>
+
+      <h2>為什麼需要這個 platform</h2>
+      <p>
+        我累積了一批通用的 AI 工作流 Skill,這些 Skill 對公司內任何用 Claude 的同事都有用。
+        但目前同事拿不到,因為散落在我本機。
+      </p>
+      <p>
+        這個 platform 解決的是<strong>分發</strong>問題:讓同事能瀏覽、下載、安裝這些 Skill,
+        不需要 Slack 私訊我要檔案、不需要懂 git、不需要敲指令。
+      </p>
+
+      <h2>架構</h2>
+      <ul>
+        <li><strong>資料源:</strong>GitHub public repo (<code>skills/</code> 資料夾)</li>
+        <li><strong>自動化:</strong>GitHub Actions(每次 push 自動 build + deploy)</li>
+        <li><strong>網站:</strong>Astro 純靜態,部署於 GitHub Pages</li>
+        <li><strong>下載:</strong>每個 skill 一個 zip,點按鈕直接下載</li>
+      </ul>
+      <p>
+        純靜態、無後端、無資料庫、無使用者帳號。維運成本接近零。
+      </p>
+
+      <h2>誰可以上架 Skill?</h2>
+      <p>
+        目前只有 Vt 一人 maintain。如果你有想上架的 Skill,請 Slack 私訊討論。
+      </p>
+      <p>
+        所有 Skill 上架前都需通過機密內容檢核 — 不能含雄獅內部 squad 名稱、
+        系統代號、成員名單、業務邏輯。含內部資訊的 Skill 走公司內部流程,
+        不在此 platform 公開。
+      </p>
+
+      <h2>使用條款</h2>
+      <p>
+        Skill 內容採 MIT 授權。可自由使用、修改、分享,但作者不對使用結果負責。
+        詳見 repo 內的 <code>LICENSE</code>。
+      </p>
+
+      <h2>回饋與問題</h2>
+      <p>
+        Skill 用起來有問題、想要新功能、發現 bug —— 都歡迎 Slack 私訊 Vt 或在 repo 開 issue。
+      </p>
+    </article>
+  </div>
+</Layout>

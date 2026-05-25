@@ -1,0 +1,170 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import catalog from '../../data/skills.generated.json';
+import type { SkillMeta } from '../../types';
+
+export function getStaticPaths() {
+  const skills = (catalog.skills as SkillMeta[]) || [];
+  return skills.map((skill) => ({
+    params: { name: skill.name },
+    props: { skill },
+  }));
+}
+
+interface Props {
+  skill: SkillMeta;
+}
+
+const { skill } = Astro.props;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  planning: '規劃',
+  writing: '寫作',
+  review: '審查',
+  summary: '沉澱',
+  data: '資料',
+  utility: '工具',
+  domain: '領域',
+};
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+const BASE = import.meta.env.BASE_URL;
+
+// 輕量 markdown render：將 SKILL.md body 簡易處理為 HTML
+// 不引入 markdown 解析庫,保持依賴最小化;適用於我們已知格式的 SKILL.md
+function renderMarkdown(md: string): string {
+  let html = md;
+
+  // 程式碼區塊（要先處理,避免內部被其他規則破壞）
+  const codeBlocks: string[] = [];
+  html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const escaped = code
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    codeBlocks.push(`<pre><code class="lang-${lang}">${escaped}</code></pre>`);
+    return `\u0000CODEBLOCK_${codeBlocks.length - 1}\u0000`;
+  });
+
+  // 行內 code
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold / italic
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+  // Lists（簡化處理：連續行）
+  html = html.replace(/(?:^- .+\n?)+/gm, (block) => {
+    const items = block
+      .trim()
+      .split('\n')
+      .map((line) => line.replace(/^- /, ''))
+      .map((item) => `<li>${item}</li>`)
+      .join('');
+    return `<ul>${items}</ul>`;
+  });
+
+  // Paragraphs（將剩餘文字段落包起來）
+  html = html
+    .split(/\n\n+/)
+    .map((para) => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      // 已經是 html tag 開頭就不包 p
+      if (/^<(h[1-6]|ul|ol|pre|blockquote)/.test(trimmed)) return trimmed;
+      if (trimmed.startsWith('\u0000CODEBLOCK_')) return trimmed;
+      return `<p>${trimmed.replace(/\n/g, '<br />')}</p>`;
+    })
+    .join('\n\n');
+
+  // 還原程式碼區塊
+  html = html.replace(/\u0000CODEBLOCK_(\d+)\u0000/g, (_, i) => codeBlocks[parseInt(i, 10)]);
+
+  return html;
+}
+
+const renderedBody = renderMarkdown(skill.body);
+---
+
+<Layout title={skill.name} description={skill.description}>
+  <div class="container container-prose">
+    <a href={BASE} class="detail-back">← back to index</a>
+
+    <header class="detail-header">
+      <h1 class="detail-title">{skill.name}</h1>
+      <div class="detail-meta">
+        <span><span class={`cat-badge cat-${skill.category}`}>{CATEGORY_LABELS[skill.category]}</span></span>
+        <span>version <strong>{skill.version}</strong></span>
+        <span>last update <strong>{formatDate(skill.lastModified)}</strong></span>
+        <span>commit <strong class="mono">{skill.commitHash}</strong></span>
+        {skill.author && <span>by <strong>{skill.author}</strong></span>}
+      </div>
+      <p class="detail-description">{skill.description}</p>
+
+      <div class="detail-actions">
+        <a
+          href={`${BASE}downloads/${skill.zipFilename}`}
+          class="btn-download btn-download--large"
+          download
+        >
+          ↓ Download .zip
+          <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
+        </a>
+        {skill.tags && skill.tags.length > 0 && (
+          <span style="font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-ink-faint);">
+            {skill.tags.join(' · ')}
+          </span>
+        )}
+      </div>
+
+      {skill.related && skill.related.length > 0 && (
+        <p class="related-skills">
+          <strong>Related:</strong>{' '}
+          {skill.related.map((rel, i) => (
+            <>
+              <a href={`${BASE}skill/${rel}`}>{rel}</a>
+              {i < skill.related.length - 1 && ' · '}
+            </>
+          ))}
+        </p>
+      )}
+    </header>
+
+    <article class="skill-body" set:html={renderedBody}></article>
+
+    <section style="margin-top: 4rem;">
+      <h2 style="margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-line);">
+        Install
+      </h2>
+      <div class="install-box">
+        <div class="install-box__title">three steps</div>
+        <ol>
+          <li>下載 <code>{skill.zipFilename}</code></li>
+          <li>解壓縮,把 <code>{skill.name}/</code> 整個資料夾放到 <code>~/.claude/skills/</code></li>
+          <li>重啟 Claude</li>
+        </ol>
+        {skill.related && skill.related.length > 0 && (
+          <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--color-ink-muted);">
+            提醒:本 skill 引用了 <strong>{skill.related.join(', ')}</strong>,建議一起安裝。
+          </p>
+        )}
+      </div>
+    </section>
+  </div>
+</Layout>

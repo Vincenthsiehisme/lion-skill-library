@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = 'Lion Skill Library', description = '雄獅內部 Claude Skill 分發平台' } = Astro.props;
+const fullTitle = title === 'Lion Skill Library' ? title : `${title} — Lion Skill Library`;
+---
+
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <title>{fullTitle}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <div class="site-title">
+          <a href={import.meta.env.BASE_URL}>
+            <span class="site-title__mark">§</span>Lion Skill Library
+          </a>
+        </div>
+        <nav class="site-nav">
+          <a href={`${import.meta.env.BASE_URL}#how-to-install`}>How to install</a>
+          <a href={`${import.meta.env.BASE_URL}about`}>About</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <span>Lion Skill Library · Internal use</span>
+        <span class="mono">Maintained by Vt</span>
+      </div>
+    </footer>
+  </body>
+</html>
