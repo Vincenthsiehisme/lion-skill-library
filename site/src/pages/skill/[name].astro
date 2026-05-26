@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import catalog from '../../data/skills.generated.json';
 import type { SkillMeta } from '../../types';
+import { renderMarkdown, extractToc } from '../../lib/markdown';
 
 export function getStaticPaths() {
   const skills = (catalog.skills as SkillMeta[]) || [];
@@ -41,88 +42,38 @@ function formatDate(iso: string): string {
 
 const BASE = import.meta.env.BASE_URL;
 
-// 輕量 markdown render：將 SKILL.md body 簡易處理為 HTML
-// 不引入 markdown 解析庫,保持依賴最小化;適用於我們已知格式的 SKILL.md
-//
-// NOTE: 全站零斜體規則 — `*xxx*` 一律渲染為 <strong>(粗體),不再產生 <em>。
-// 如果 skill 作者習慣用 `*xxx*` 做 emphasis,效果等同 `**xxx**`。
-function renderMarkdown(md: string): string {
-  let html = md;
+// 渲染 SKILL.md body — 在詳情頁脈絡下,references/xxx.md 連到 ./ref/{slug}
+const renderedBody = renderMarkdown(skill.body, { refLinkPrefix: './ref/' });
+const toc = extractToc(renderedBody);
 
-  // 程式碼區塊（要先處理,避免內部被其他規則破壞）
-  const codeBlocks: string[] = [];
-  html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    const escaped = code
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    codeBlocks.push(`<pre><code class="lang-${lang}">${escaped}</code></pre>`);
-    return `\u0000CODEBLOCK_${codeBlocks.length - 1}\u0000`;
-  });
+// 第一行 description 當 pitch
+const pitch = skill.description.split('\n')[0].trim();
 
-  // 行內 code
-  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-
-  // Bold / italic
-  // 全站零斜體規則:`**xxx**` 與 `*xxx*` 都渲染為 <strong>,不再產生 <em>。
-  // 順序重要:先處理 ** 再處理 * 避免被 * 規則先吃掉。
-  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
-
-  // Lists（簡化處理：連續行）
-  html = html.replace(/(?:^- .+\n?)+/gm, (block) => {
-    const items = block
-      .trim()
-      .split('\n')
-      .map((line) => line.replace(/^- /, ''))
-      .map((item) => `<li>${item}</li>`)
-      .join('');
-    return `<ul>${items}</ul>`;
-  });
-
-  // Paragraphs（將剩餘文字段落包起來）
-  html = html
-    .split(/\n\n+/)
-    .map((para) => {
-      const trimmed = para.trim();
-      if (!trimmed) return '';
-      // 已經是 html tag 開頭就不包 p
-      if (/^<(h[1-6]|ul|ol|pre|blockquote)/.test(trimmed)) return trimmed;
-      if (trimmed.startsWith('\u0000CODEBLOCK_')) return trimmed;
-      return `<p>${trimmed.replace(/\n/g, '<br />')}</p>`;
-    })
-    .join('\n\n');
-
-  // 還原程式碼區塊
-  html = html.replace(/\u0000CODEBLOCK_(\d+)\u0000/g, (_, i) => codeBlocks[parseInt(i, 10)]);
-
-  return html;
-}
-
-const renderedBody = renderMarkdown(skill.body);
+// At a glance 區塊是否要顯示(有任一資料才顯示)
+const hasAtGlance =
+  skill.atGlance.triggerKeywords ||
+  skill.atGlance.doNotTrigger ||
+  skill.atGlance.gotchaTitles.length > 0 ||
+  (skill.related && skill.related.length > 0);
 ---
 
-<Layout title={skill.name} description={skill.description}>
-  <div class="container container-prose">
+<Layout title={skill.name} description={pitch}>
+  <div class="container">
     <a href={BASE} class="detail-back">← back to index</a>
 
-    <header class="detail-header">
-      <h1 class="detail-title">{skill.name}</h1>
-      <div class="detail-meta">
-        <span><span class={`cat-badge cat-${skill.category}`}>{CATEGORY_LABELS[skill.category]}</span></span>
-        <span>version <strong>{skill.version}</strong></span>
-        <span>last update <strong>{formatDate(skill.lastModified)}</strong></span>
-        <span>commit <strong class="mono">{skill.commitHash}</strong></span>
-        {skill.author && <span>by <strong>{skill.author}</strong></span>}
+    {/* ─────────────────────────────── Hero ─────────────────────────────── */}
+    <section class="hero-detail">
+      <div class="hero-detail__head">
+        <span class={`cat-badge cat-${skill.category}`}>{CATEGORY_LABELS[skill.category]}</span>
+        <span class="hero-detail__version">v{skill.version}</span>
+        <span class="hero-detail__date">更新於 {formatDate(skill.lastModified)}</span>
+        <span class="hero-detail__commit mono">{skill.commitHash}</span>
       </div>
-      <p class="detail-description">{skill.description}</p>
 
-      <div class="detail-actions">
+      <h1 class="hero-detail__title">{skill.name}</h1>
+      <p class="hero-detail__pitch">{pitch}</p>
+
+      <div class="hero-detail__cta">
         <a
           href={`${BASE}downloads/${skill.zipFilename}`}
           class="btn-download btn-download--large"
@@ -131,32 +82,114 @@ const renderedBody = renderMarkdown(skill.body);
           ↓ Download .zip
           <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
         </a>
-        {skill.tags && skill.tags.length > 0 && (
-          <span style="font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-ink-faint);">
-            {skill.tags.join(' · ')}
-          </span>
-        )}
+        <a href={`${BASE}install`} class="btn-secondary">
+          一行指令安裝 →
+        </a>
       </div>
 
-      {skill.related && skill.related.length > 0 && (
-        <p class="related-skills">
-          <strong>Related:</strong>{' '}
-          {skill.related.map((rel, i) => (
-            <>
-              <a href={`${BASE}skill/${rel}`}>{rel}</a>
-              {i < skill.related.length - 1 && ' · '}
-            </>
-          ))}
-        </p>
+      {skill.tags && skill.tags.length > 0 && (
+        <div class="hero-detail__tags">
+          {skill.tags.map((t) => <span class="tag">{t}</span>)}
+        </div>
       )}
-    </header>
+    </section>
 
-    <article class="skill-body" set:html={renderedBody}></article>
+    {/* ─────────────────────────────── At a glance ─────────────────────────────── */}
+    {hasAtGlance && (
+      <section class="at-glance">
+        <h2 class="section-heading">At a glance</h2>
+        <div class="at-glance__grid">
+          {skill.atGlance.triggerKeywords && (
+            <div class="at-glance__card">
+              <div class="at-glance__card-title">何時觸發</div>
+              <p class="at-glance__card-body">{skill.atGlance.triggerKeywords}</p>
+            </div>
+          )}
 
-    <section style="margin-top: 4rem;">
-      <h2 style="margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-line);">
-        Install
-      </h2>
+          {skill.atGlance.doNotTrigger && (
+            <div class="at-glance__card at-glance__card--neg">
+              <div class="at-glance__card-title">不適用情境</div>
+              <p class="at-glance__card-body">{skill.atGlance.doNotTrigger}</p>
+            </div>
+          )}
+
+          {skill.atGlance.gotchaTitles.length > 0 && (
+            <div class="at-glance__card at-glance__card--warn">
+              <div class="at-glance__card-title">常見踩雷 ({skill.atGlance.gotchaTitles.length})</div>
+              <ul class="at-glance__gotcha-list">
+                {skill.atGlance.gotchaTitles.slice(0, 6).map((g) => (
+                  <li>{g}</li>
+                ))}
+              </ul>
+              {skill.atGlance.gotchaTitles.length > 6 && (
+                <a href="#gotchas" class="at-glance__more">看完整 →</a>
+              )}
+            </div>
+          )}
+
+          {skill.related && skill.related.length > 0 && (
+            <div class="at-glance__card">
+              <div class="at-glance__card-title">相關 skill</div>
+              <ul class="at-glance__related-list">
+                {skill.related.map((rel) => (
+                  <li><a href={`${BASE}skill/${rel}`}>{rel}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+
+    {/* ─────────────────────────────── How it works + sticky TOC ─────────────────────────────── */}
+    <section class="how-it-works">
+      <h2 class="section-heading">How it works</h2>
+      <div class="how-it-works__layout">
+        {toc.length > 0 && (
+          <aside class="toc">
+            <div class="toc__label">目錄</div>
+            <ul class="toc__list">
+              {toc.filter((t) => t.level === 2).map((t) => (
+                <li>
+                  <a href={`#${t.id}`}>{t.text}</a>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        )}
+        <article class="skill-body" set:html={renderedBody}></article>
+      </div>
+    </section>
+
+    {/* ─────────────────────────────── References ─────────────────────────────── */}
+    {skill.references && skill.references.length > 0 && (
+      <section class="references-section">
+        <h2 class="section-heading">Reference files ({skill.references.length})</h2>
+        <p class="references-section__intro">
+          這個 skill 採用 progressive disclosure 設計,主要邏輯在上方 SKILL.md,
+          下列為按需載入的 references。
+        </p>
+        <ul class="ref-list">
+          {skill.references.map((ref) => (
+            <li class="ref-list__item">
+              <a href={`${BASE}skill/${skill.name}/ref/${ref.slug}`} class="ref-list__link">
+                <div class="ref-list__filename">
+                  <span class="mono">references/{ref.filename}</span>
+                  <span class="ref-list__arrow">→</span>
+                </div>
+                {ref.firstLine && (
+                  <div class="ref-list__preview">{ref.firstLine}</div>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {/* ─────────────────────────────── Install ─────────────────────────────── */}
+    <section class="install-section">
+      <h2 class="section-heading">Install</h2>
       <div class="install-box">
         <div class="install-box__title">three steps</div>
         <ol>
@@ -173,3 +206,25 @@ const renderedBody = renderMarkdown(skill.body);
     </section>
   </div>
 </Layout>
+
+<script>
+  // sticky TOC: 捲動時高亮當前章節
+  const tocLinks = document.querySelectorAll<HTMLAnchorElement>('.toc__list a');
+  if (tocLinks.length > 0) {
+    const headings = document.querySelectorAll<HTMLElement>('.skill-body h2[id]');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            tocLinks.forEach((a) => {
+              a.classList.toggle('is-active', a.getAttribute('href') === `#${id}`);
+            });
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -70% 0px' },
+    );
+    headings.forEach((h) => observer.observe(h));
+  }
+</script>
