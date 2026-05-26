@@ -2,10 +2,10 @@
  * Build catalog metadata JSON for the Astro site.
  *
  * Reads:
- *   - skills/&#42;&#42;/SKILL.md (frontmatter + body)
- *   - skills/&#42;&#42;/references/&#42;.md (subpages,平展讀取)
- *   - site/public/downloads/&#42;.zip (size)
- *   - git log (last commit date per skill)
+ *   - skills/**\/SKILL.md (frontmatter + body)
+ *   - skills/**\/references/*.md (subpages,平展讀取)
+ *   - site/public/downloads/*.zip (size)
+ *   - git log (first + last commit date, version bump date per skill)
  *
  * Writes:
  *   - site/src/data/skills.generated.json
@@ -38,20 +38,70 @@ function listSkillFolders(): string[] {
     .filter((name) => !RESERVED.includes(name));
 }
 
-function getGitInfo(skillFolder: string): { lastModified: string; commitHash: string } {
+/**
+ * 撈一個 skill 資料夾的 git 歷史。回傳:
+ *   - lastModified  : 最後一次 commit ISO 日期 (任何改動)
+ *   - firstPublished: 資料夾首次 commit ISO 日期 (新發布判定基準)
+ *   - commitHash    : lastModified 那次 commit 的 short hash
+ *
+ * 不在 git repo / 還沒 commit:三者都 fallback 到 now / 'local'。
+ * firstPublished 撈不到但 lastModified 有(理論上不應發生):回傳等於 lastModified。
+ */
+function getGitInfo(skillFolder: string): {
+  lastModified: string;
+  firstPublished: string;
+  commitHash: string;
+} {
   const path = join('skills', skillFolder);
   try {
-    const date = execSync(`git log -1 --format=%cI -- "${path}"`, { encoding: 'utf-8' }).trim();
-    const hash = execSync(`git log -1 --format=%h -- "${path}"`, { encoding: 'utf-8' }).trim();
+    const lastDate = execSync(`git log -1 --format=%cI -- "${path}"`, {
+      encoding: 'utf-8',
+    }).trim();
+    const hash = execSync(`git log -1 --format=%h -- "${path}"`, {
+      encoding: 'utf-8',
+    }).trim();
+    // --reverse 後 head -1 拿最舊 commit。
+    const firstDate = execSync(
+      `git log --format=%cI --reverse -- "${path}" | head -1`,
+      { encoding: 'utf-8' },
+    ).trim();
     return {
-      lastModified: date || new Date().toISOString(),
+      lastModified: lastDate || new Date().toISOString(),
+      firstPublished: firstDate || lastDate || new Date().toISOString(),
       commitHash: hash || 'unknown',
     };
   } catch {
+    const now = new Date().toISOString();
     return {
-      lastModified: new Date().toISOString(),
+      lastModified: now,
+      firstPublished: now,
       commitHash: 'local',
     };
+  }
+}
+
+/**
+ * 撈 SKILL.md 的 `version:` 那行最後一次「實際變動」的 commit 日期。
+ *
+ * 用 `git log -L /^version:/,+1:<file>` 追蹤該行歷史,git 會自動把
+ * 「沒動到 version 行的 commit」濾掉(像是改 description / 補 reference)。
+ * -s 抑制 diff 輸出,只剩日期。第一筆 = 最新一次該行變動。
+ *
+ * Fallback:
+ *   - 從未 bump 過 version (只一筆初始 commit) → 回那筆
+ *   - 還沒 commit 到 git / 撈不到 → 回 null,呼叫端用 firstPublished
+ */
+function getVersionBumpedAt(skillFolder: string): string | null {
+  const filePath = join('skills', skillFolder, 'SKILL.md');
+  try {
+    const out = execSync(
+      `git log -L '/^version:/,+1:${filePath}' -s --format=%cI`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] },
+    ).trim();
+    const lines = out.split('\n').filter((l) => /^\d{4}-/.test(l));
+    return lines[0] || null;
+  } catch {
+    return null;
   }
 }
 
@@ -184,7 +234,8 @@ function buildSkillMeta(folder: string): SkillMeta {
   const zipPath = join(DOWNLOADS_DIR, zipFilename);
   const zipSize = existsSync(zipPath) ? statSync(zipPath).size : 0;
 
-  const { lastModified, commitHash } = getGitInfo(folder);
+  const { lastModified, firstPublished, commitHash } = getGitInfo(folder);
+  const versionBumpedAt = getVersionBumpedAt(folder) ?? firstPublished;
 
   const body = parsed.content.trim();
   const references = readReferences(folder);
@@ -196,6 +247,8 @@ function buildSkillMeta(folder: string): SkillMeta {
     zipFilename,
     zipSize,
     lastModified,
+    firstPublished,
+    versionBumpedAt,
     commitHash,
     references,
     atGlance,
