@@ -1,0 +1,219 @@
+---
+import Layout from '../layouts/Layout.astro';
+const BASE = import.meta.env.BASE_URL;
+const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
+---
+
+<Layout title="Install" description="Lion Skill Library 安裝教學:Claude Code 一行指令,或手動下載 zip">
+  <div class="container container-prose">
+    <a href={BASE} class="detail-back">← back to index</a>
+
+    <header class="detail-header">
+      <h1 class="detail-title">Install</h1>
+      <p class="detail-description">
+        兩條路:用 Claude Code 的人貼一行指令就好;用 Claude.ai 網頁版的人下載 zip 上傳。
+        都不會 5 分鐘。
+      </p>
+    </header>
+
+    <article class="skill-body">
+
+      <!-- ════════════════════════════════════════ -->
+      <!-- 路 A:Claude Code 一行指令              -->
+      <!-- ════════════════════════════════════════ -->
+      <h2 id="claude-code-script">路 A · Claude Code(一行指令)</h2>
+      <p>
+        最快路徑。你電腦上要有 <strong>Claude Code</strong>(終端機版,還沒裝看本頁
+        <a href="#install-claude-code">最後一段</a>)。打開 terminal,貼這行:
+      </p>
+
+      <h3>裝單一 skill</h3>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting</code></pre>
+
+      <h3>列出所有可裝的 skill</h3>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- list</code></pre>
+
+      <h3>一次裝整個庫</h3>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install --all</code></pre>
+
+      <h3>裝到當前專案而非全域</h3>
+      <p>預設裝到 <code>~/.claude/skills/</code>(全專案共用)。如果只想對某個專案啟用:</p>
+<pre><code>cd /path/to/your/project
+curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --scope project</code></pre>
+      <p>會裝到 <code>./.claude/skills/</code>,只在那個專案的 Claude Code session 觸發。</p>
+
+      <h3>覆蓋更新</h3>
+      <p>已經裝過、想換最新版:</p>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --force</code></pre>
+
+      <h3>所有指令一覽</h3>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- help</code></pre>
+
+      <p style="margin-top: 1.5rem; font-size: 0.875rem; color: var(--color-ink-faint);">
+        <strong>支援平台:</strong>macOS / Linux。Windows PowerShell 版本準備中。
+      </p>
+
+
+      <!-- ════════════════════════════════════════ -->
+      <!-- 路 B:手動下載 zip                       -->
+      <!-- ════════════════════════════════════════ -->
+      <h2 id="manual-download" style="margin-top: 4rem;">路 B · 手動下載 zip</h2>
+      <p>
+        適合:Windows 使用者、Claude.ai 網頁版使用者、或就是不想跑 curl 的人。
+      </p>
+
+      <h3>Claude Code / Claude Desktop(本機版)</h3>
+      <ol>
+        <li>從 <a href={BASE}>首頁</a>點 <strong>Download</strong> 按鈕,拿到 <code>.zip</code></li>
+        <li>解壓縮,會得到一個資料夾(例如 <code>example-greeting/</code>)</li>
+        <li>把整個資料夾放進對應位置:
+          <ul style="margin-top: 0.5rem;">
+            <li>macOS / Linux: <code>~/.claude/skills/</code></li>
+            <li>Windows: <code>%USERPROFILE%\.claude\skills\</code></li>
+          </ul>
+          目錄不存在就建一個。
+        </li>
+        <li>重啟 Claude Code session,或重啟 Claude Desktop</li>
+      </ol>
+
+      <h3>Claude.ai(網頁版)</h3>
+      <ol>
+        <li>下載 zip 後解壓縮</li>
+        <li>打開 <a href="https://claude.ai/settings/capabilities" target="_blank" rel="noopener">claude.ai/settings/capabilities</a></li>
+        <li>找到 Skills 區,點 <strong>Upload</strong></li>
+        <li>選擇<strong>解壓出來的資料夾</strong>(注意:是資料夾,不是 zip)</li>
+        <li>Claude 會自動驗證並啟用</li>
+      </ol>
+
+
+      <!-- ════════════════════════════════════════ -->
+      <!-- Claude Code 本身的安裝(L2 完整教學)    -->
+      <!-- ════════════════════════════════════════ -->
+      <h2 id="install-claude-code" style="margin-top: 4rem;">附錄 · 安裝 Claude Code</h2>
+      <p>
+        如果你還沒裝 Claude Code,以下是完整流程。Claude Code 是 Anthropic 官方的命令列工具,
+        讓你在 terminal 直接跟 Claude 對話、跑 skill。
+      </p>
+
+      <h3>1. 前置:Node.js</h3>
+      <p>Claude Code 需要 Node.js 18 或更新。先檢查:</p>
+<pre><code>node --version
+# 應該看到 v18.x.x 或更高</code></pre>
+      <p>沒裝或版本太舊的話:</p>
+      <ul>
+        <li><strong>macOS:</strong><code>brew install node</code>(或從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載安裝包)</li>
+        <li><strong>Linux:</strong>用發行版套件管理員,或從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載</li>
+        <li><strong>Windows:</strong>從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載安裝包,或用 <code>winget install OpenJS.NodeJS</code></li>
+      </ul>
+
+      <h3>2. 安裝 Claude Code</h3>
+      <p>兩種方式擇一,公司內網擋哪個就用另一個:</p>
+
+      <p><strong>方式 A · npm(推薦,跨平台一致)</strong></p>
+<pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
+
+      <p><strong>方式 B · 官方 native installer(macOS / Linux)</strong></p>
+<pre><code>curl -fsSL https://claude.ai/install.sh | bash</code></pre>
+
+      <p>裝完驗證:</p>
+<pre><code>claude --version</code></pre>
+
+      <h3>3. 第一次啟動 + 認證</h3>
+      <p>在任何目錄打:</p>
+<pre><code>claude</code></pre>
+      <p>
+        第一次跑會引導你登入。兩種認證方式擇一:
+      </p>
+      <ul>
+        <li><strong>Claude subscription</strong>(Pro / Team / Enterprise):瀏覽器登入 claude.ai 帳號,額度走 subscription</li>
+        <li><strong>API key</strong>:從 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> 拿 key,額度走 API billing</li>
+      </ul>
+      <p>
+        雄獅內部用哪一種,問 Vt 或 IT 部。
+      </p>
+
+      <h3>4. 驗證 skill 機制能用</h3>
+      <p>先裝範例 skill 確認 pipeline 通了:</p>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting</code></pre>
+      <p>然後在 Claude Code 中跟它打招呼:</p>
+      <blockquote>嗨 Claude</blockquote>
+      <p>如果 skill 有觸發,Claude 會用 skill 設計的方式回應,並可能提到 Lion Skill Library。</p>
+
+      <p>更詳細的 Claude Code 文件,參考 <a href="https://docs.claude.com/en/docs/claude-code" target="_blank" rel="noopener">Anthropic 官方文件</a>。</p>
+
+
+      <!-- ════════════════════════════════════════ -->
+      <!-- 確認 / 更新 / 解除安裝                   -->
+      <!-- ════════════════════════════════════════ -->
+      <h2 id="verify" style="margin-top: 4rem;">確認安裝成功</h2>
+      <p>開 Claude(任何版本),問:</p>
+      <blockquote>列出我目前安裝了哪些 skill</blockquote>
+      <p>Claude 會列出讀到的 skill。沒列到就是位置不對或沒重啟。</p>
+
+
+      <h2 id="update">更新 skill</h2>
+      <p><strong>路 A 使用者:</strong>加 <code>--force</code> 重跑指令</p>
+<pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --force</code></pre>
+      <p><strong>路 B 使用者:</strong>刪掉舊資料夾,重新下載新版 zip,放進去,重啟 Claude</p>
+
+
+      <h2 id="uninstall">解除安裝</h2>
+      <p>直接刪掉 skill 資料夾:</p>
+<pre><code># macOS / Linux
+rm -rf ~/.claude/skills/&lt;skill-name&gt;
+
+# Windows PowerShell
+Remove-Item -Recurse "$env:USERPROFILE\.claude\skills\&lt;skill-name&gt;"</code></pre>
+      <p>重啟 Claude。</p>
+
+
+      <!-- ════════════════════════════════════════ -->
+      <!-- 常見問題                                  -->
+      <!-- ════════════════════════════════════════ -->
+      <h2 id="faq" style="margin-top: 4rem;">常見問題</h2>
+
+      <h3>Claude 沒有觸發我裝的 skill</h3>
+      <p>三個可能原因:</p>
+      <ol>
+        <li><strong>沒重啟 Claude</strong>:skill 是 session 啟動時載入,要重開新 session 才生效</li>
+        <li><strong>位置錯</strong>:確認檔案在 <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>,**注意有外層資料夾**</li>
+        <li><strong>觸發條件沒對上</strong>:每個 skill 的 description 寫了它何時觸發,沒命中關鍵字就不會跑。看 skill 詳情頁的觸發詞</li>
+      </ol>
+
+      <h3>裝了多個 skill 會不會互相干擾</h3>
+      <p>不會。Claude 根據對話語意判斷該觸發哪個。相關的 skill 建議一起裝(網站會在卡片上標 related)。</p>
+
+      <h3>解壓出來是 prd-writer/prd-writer/... 兩層</h3>
+      <p>不應該。zip 內部結構是「外層 prd-writer/」,你解壓出來應該只有一層。如果出現雙層,把內層整個拿出來就好。</p>
+
+      <h3>curl 指令跑出 "command not found: jq"</h3>
+      <p>腳本需要 <code>jq</code> 或 <code>python3</code> 任一來解析 manifest。大多數 Mac / Linux 預設有 python3,Windows WSL 也是。如果都沒裝:</p>
+<pre><code># macOS
+brew install jq
+
+# Ubuntu / Debian
+sudo apt install jq
+
+# RHEL / CentOS
+sudo yum install jq</code></pre>
+
+      <h3>PowerShell 跑腳本被擋(ExecutionPolicy)</h3>
+      <p>Windows 版本準備中。目前 Windows 使用者請走<a href="#manual-download">路 B 手動下載</a>。</p>
+
+      <h3>公司 MIS 擋 GitHub Pages</h3>
+      <p>跟 IT 部反映 <code>vincenthsiehisme.github.io</code> 是內部工具(自己人 maintain)需要解禁。或私訊 Vt 改用 USB 傳。</p>
+
+      <h3>我想改 skill 的內容</h3>
+      <p>直接編輯 <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>。本機改動不會同步回 Lion Skill Library。改得不錯想回饋,Slack 私訊 Vt。</p>
+
+
+      <hr style="margin: 4rem 0; border: none; border-top: 1px solid var(--color-line);" />
+      <p style="font-size: 0.875rem; color: var(--color-ink-faint);">
+        問題或建議:私訊 Vt,或在
+        <a href="https://github.com/Vincenthsiehisme/lion-skill-library/issues" target="_blank" rel="noopener">GitHub repo</a>
+        開 issue。
+      </p>
+
+    </article>
+  </div>
+</Layout>
