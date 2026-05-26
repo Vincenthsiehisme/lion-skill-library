@@ -146,12 +146,13 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
             <span class="install-route__badge">路 A</span>
             <span class="install-route__title">一行指令 · Claude Code</span>
           </div>
-          <p class="install-route__sub">最快路徑。打開 terminal,貼:</p>
+          <p class="install-route__sub">最快路徑。<strong>macOS / Linux</strong>:</p>
           <pre class="install-route__code"><code>curl -fsSL {SITE}/install.sh | bash -s -- install &lt;name&gt;</code></pre>
-          <p class="install-route__sub" style="margin-top: 0.75rem;">列出可裝清單:</p>
-          <pre class="install-route__code"><code>curl -fsSL {SITE}/install.sh | bash -s -- list</code></pre>
+          <p class="install-route__sub" style="margin-top: 0.75rem;"><strong>Windows PowerShell</strong>:</p>
+          <pre class="install-route__code"><code>iwr {SITE}/install.ps1 -useb -OutFile install.ps1
+.\install.ps1 install &lt;name&gt;</code></pre>
           <p class="install-route__note">
-            支援 macOS / Linux。Windows PowerShell 版本準備中。
+            兩平台指令選項一致(<code>list</code> / <code>install --all</code> / <code>--scope project</code> / <code>--force</code>)。完整教學見下方。
           </p>
         </div>
 
