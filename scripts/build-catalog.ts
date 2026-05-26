@@ -21,6 +21,12 @@ import { SkillFrontmatterSchema, type SkillMeta } from './schema.js';
 const SKILLS_DIR = join(process.cwd(), 'skills');
 const DOWNLOADS_DIR = join(process.cwd(), 'site', 'public', 'downloads');
 const OUTPUT_FILE = join(process.cwd(), 'site', 'src', 'data', 'skills.generated.json');
+/**
+ * 對外公開的 manifest（給 install.sh / install.ps1 讀的 API endpoint）。
+ * 精簡版，不含 SKILL.md body 全文。部署後可從以下 URL 取得：
+ *   https://<site>/<base>/manifest.json
+ */
+const PUBLIC_MANIFEST_FILE = join(process.cwd(), 'site', 'public', 'manifest.json');
 const RESERVED = ['_template'];
 
 function listSkillFolders(): string[] {
@@ -102,7 +108,29 @@ function main(): void {
   );
 
   console.log(`  ✓ ${skills.length} skill(s) catalogued`);
-  console.log(`  ✓ Written to site/src/data/skills.generated.json\n`);
+  console.log(`  ✓ Written to site/src/data/skills.generated.json`);
+
+  // 額外吐一份對外公開的精簡 manifest（給 install.sh / install.ps1 讀）
+  const publicManifest = {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    totalCount: skills.length,
+    skills: skills.map((s) => ({
+      name: s.name,
+      version: s.version,
+      category: s.category,
+      description: s.description.split('\n')[0].trim(), // 只取第一行摘要
+      tags: s.tags,
+      zipFilename: s.zipFilename,
+      zipSize: s.zipSize,
+      lastModified: s.lastModified,
+    })),
+  };
+
+  const publicManifestDir = dirname(PUBLIC_MANIFEST_FILE);
+  if (!existsSync(publicManifestDir)) mkdirSync(publicManifestDir, { recursive: true });
+  writeFileSync(PUBLIC_MANIFEST_FILE, JSON.stringify(publicManifest, null, 2));
+  console.log(`  ✓ Written to site/public/manifest.json (public API)\n`);
 }
 
 main();
