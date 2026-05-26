@@ -48,6 +48,32 @@ export const SkillFrontmatterSchema = z.object({
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
 
 /**
+ * 一份 reference 子檔的中繼資料
+ */
+export interface SkillReference {
+  /** 不含副檔名的 slug,用於 URL 與檔名對照 */
+  slug: string;
+  /** 原始檔名(含 .md) */
+  filename: string;
+  /** 第一行非空非標題的文字,當作摘要 */
+  firstLine: string;
+  /** 整份 markdown 內容 */
+  body: string;
+}
+
+/**
+ * 從 description 規則切出來的「At a glance」結構化片段
+ */
+export interface AtGlance {
+  /** 觸發關鍵字段落(若有) */
+  triggerKeywords: string | null;
+  /** DO NOT trigger for 段落(若有) */
+  doNotTrigger: string | null;
+  /** Gotchas H2 下的 H3 標題清單(常見踩雷摘要) */
+  gotchaTitles: string[];
+}
+
+/**
  * 完整 skill metadata（frontmatter + build-time 補充欄位）
  */
 export interface SkillMeta extends SkillFrontmatter {
@@ -61,4 +87,8 @@ export interface SkillMeta extends SkillFrontmatter {
   lastModified: string;
   /** Git commit hash（short） */
   commitHash: string;
+  /** references/ 子檔清單,平展(目前不處理子資料夾) */
+  references: SkillReference[];
+  /** 從 description 與 body 規則萃取的 At a glance 結構 */
+  atGlance: AtGlance;
 }
