@@ -23,7 +23,11 @@ export interface SkillMeta {
   body: string;
   zipFilename: string;
   zipSize: number;
+  /** 最後 commit 日期 ISO 8601 — 用於「新版本」判定 */
   lastModified: string;
+  /** 首次 commit 日期 ISO 8601 — 用於「新發布」判定 */
+  firstPublished: string;
+  /** Git commit hash（short），對應 lastModified 那次 commit */
   commitHash: string;
   references: SkillReference[];
   atGlance: AtGlance;
