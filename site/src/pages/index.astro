@@ -40,6 +40,21 @@ const totalCount = skills.length;
 const generatedAt = catalog.generatedAt ? formatDate(catalog.generatedAt) : '';
 const BASE = import.meta.env.BASE_URL;
 const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
+
+// ─────────────────────────────────────────────────────────────
+// Common tasks: hardcode 的「卡情境」入口
+// 對應到 skill 必須存在於 catalog,否則跳過該 task(避免死連結)
+// ─────────────────────────────────────────────────────────────
+const COMMON_TASKS: Array<{ task: string; skill: string; blurb: string }> = [
+  { task: '我要寫 PRD',            skill: 'prd-writer',       blurb: '結構化問診 + 模糊探索前置階段' },
+  { task: '我要審方案 / 找盲點',     skill: 'critical-reviewer', blurb: '麥肯錫式批判,顧問小組視角' },
+  { task: '我要拆 sprint 任務',     skill: 'task-dispatcher',   blurb: '偵測 Squad 範疇,輸出分工表' },
+  { task: '我要看資料 / 分析 CSV', skill: 'data-lens-proposer', blurb: '替身分析師,N 種切法擋會議提問' },
+  { task: '我要查雄獅系統',         skill: 'group-system-advisor', blurb: '控制域歸因、改動影響範圍盤點' },
+  { task: '我要結束對話交接',       skill: 'session-handoff',   blurb: '把脈絡濃縮成結構化交接文件' },
+];
+const skillNames = new Set(skills.map((s) => s.name));
+const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
 ---
 
 <Layout>
@@ -69,102 +84,154 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
       </div>
     ) : (
       <>
-        <div class="search-bar">
-          <div class="search-input-wrap">
-            <span class="search-input-icon" aria-hidden="true">⌕</span>
-            <input
-              type="search"
-              id="skill-search"
-              class="search-input"
-              placeholder="搜尋 skill 名稱、描述或 tag…"
-              autocomplete="off"
-              spellcheck="false"
-              aria-label="搜尋 skill"
-            />
+        <!-- ─────────────────────────────────────────────────────────
+             What is this · 給「完全不懂的人」的著陸區
+             ───────────────────────────────────────────────────────── -->
+        <section class="explainer">
+          <div class="explainer__label">什麼是 Skill？</div>
+          <p class="explainer__body">
+            一組給 Claude 看的指令 + 參考檔案。安裝後，Claude 會在符合條件的對話情境自動觸發，
+            用設計好的方式回應 — 不需要每次對話都重新解釋。
+          </p>
+          <p class="explainer__example">
+            例如裝了 <code>prd-writer</code>，跟 Claude 說「幫我寫一份 PRD」，
+            它會自動跑結構化的問診流程，而不是亂寫一份。
+          </p>
+          <div class="explainer__cta">
+            <a href={`${BASE}about`}>了解更多 →</a>
+            <a href={`${BASE}install`}>安裝教學 →</a>
           </div>
-          <button
-            type="button"
-            id="clear-filters"
-            class="btn-clear-filters"
-            hidden
-            aria-label="清除搜尋與所有篩選"
-          >
-            Clear all
-          </button>
-        </div>
+        </section>
 
-        <div class="filter-bar" role="tablist" aria-label="Filter by category">
-          <button
-            type="button"
-            class="filter-btn is-active"
-            data-filter="all"
-            role="tab"
-            aria-selected="true"
-          >
-            All<span class="filter-btn__count">{totalCount}</span>
-          </button>
-          {categories.map((cat) => (
+        <!-- ─────────────────────────────────────────────────────────
+             Common tasks · 給「卡情境的人」的快速入口
+             ───────────────────────────────────────────────────────── -->
+        {visibleTasks.length > 0 && (
+          <section class="tasks">
+            <div class="tasks__header">
+              <h2 class="tasks__title">常見任務</h2>
+              <span class="tasks__hint">不確定要找什麼？從這裡開始</span>
+            </div>
+            <ul class="tasks__grid">
+              {visibleTasks.map((t) => (
+                <li>
+                  <a href={`${BASE}skill/${t.skill}`} class="task-card">
+                    <div class="task-card__task">{t.task}</div>
+                    <div class="task-card__skill"><code>{t.skill}</code></div>
+                    <div class="task-card__blurb">{t.blurb}</div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <!-- ─────────────────────────────────────────────────────────
+             完整目錄(原有結構)
+             ───────────────────────────────────────────────────────── -->
+        <section class="catalog">
+          <div class="catalog__header">
+            <h2 class="catalog__title">完整目錄</h2>
+            <span class="catalog__hint">已知目標時,直接搜尋或篩選</span>
+          </div>
+
+          <div class="search-bar">
+            <div class="search-input-wrap">
+              <span class="search-input-icon" aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                id="skill-search"
+                class="search-input"
+                placeholder="搜尋 skill 名稱、描述或 tag…"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="搜尋 skill"
+              />
+            </div>
             <button
               type="button"
-              class="filter-btn"
-              data-filter={cat}
-              role="tab"
-              aria-selected="false"
+              id="clear-filters"
+              class="btn-clear-filters"
+              hidden
+              aria-label="清除搜尋與所有篩選"
             >
-              {CATEGORY_LABELS[cat]}<span class="filter-btn__count">{categoryCount[cat]}</span>
+              Clear all
             </button>
-          ))}
-        </div>
+          </div>
 
-        <ul class="skill-grid" id="skill-list">
-          {skills.map((skill) => {
-            // description 太長截斷
-            const shortDesc =
-              skill.description.length > 180
-                ? skill.description.slice(0, 180) + '…'
-                : skill.description;
-
-            return (
-              <li
-                class="skill-card"
-                data-category={skill.category}
-                data-name={skill.name.toLowerCase()}
-                data-tags={(skill.tags || []).join(' ').toLowerCase()}
-                data-search-text={skill.description.toLowerCase()}
+          <div class="filter-bar" role="tablist" aria-label="Filter by category">
+            <button
+              type="button"
+              class="filter-btn is-active"
+              data-filter="all"
+              role="tab"
+              aria-selected="true"
+            >
+              All<span class="filter-btn__count">{totalCount}</span>
+            </button>
+            {categories.map((cat) => (
+              <button
+                type="button"
+                class="filter-btn"
+                data-filter={cat}
+                role="tab"
+                aria-selected="false"
               >
-                <h2 class="skill-card__title">
-                  <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
-                </h2>
-                <p class="skill-card__desc">{shortDesc}</p>
-                <div class="skill-card__meta">
-                  <span class={`cat-badge cat-${skill.category}`}>
-                    {CATEGORY_LABELS[skill.category]}
-                  </span>
-                  <span>v{skill.version}</span>
-                  <span>{formatDate(skill.lastModified)}</span>
-                </div>
-                <div class="skill-card__actions">
-                  <span class="skill-card__version">
-                    {skill.tags && skill.tags.length > 0 ? skill.tags.slice(0, 2).join(' / ') : ''}
-                  </span>
-                  <a
-                    href={`${BASE}downloads/${skill.zipFilename}`}
-                    class="btn-download"
-                    download
-                  >
-                    ↓ Download
-                    <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
-                  </a>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                {CATEGORY_LABELS[cat]}<span class="filter-btn__count">{categoryCount[cat]}</span>
+              </button>
+            ))}
+          </div>
 
-        <div id="empty-result" class="empty-result" hidden>
-          <p>沒找到符合 "<span id="empty-result-query"></span>" 的 skill。</p>
-          <p class="empty-result__hint">試試其他關鍵字，或 <button type="button" id="empty-result-clear" class="link-button">瀏覽全部</button>。</p>
-        </div>
+          <ul class="skill-grid" id="skill-list">
+            {skills.map((skill) => {
+              // description 太長截斷
+              const shortDesc =
+                skill.description.length > 180
+                  ? skill.description.slice(0, 180) + '…'
+                  : skill.description;
+
+              return (
+                <li
+                  class="skill-card"
+                  data-category={skill.category}
+                  data-name={skill.name.toLowerCase()}
+                  data-tags={(skill.tags || []).join(' ').toLowerCase()}
+                  data-search-text={skill.description.toLowerCase()}
+                >
+                  <h2 class="skill-card__title">
+                    <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
+                  </h2>
+                  <p class="skill-card__desc">{shortDesc}</p>
+                  <div class="skill-card__meta">
+                    <span class={`cat-badge cat-${skill.category}`}>
+                      {CATEGORY_LABELS[skill.category]}
+                    </span>
+                    <span>v{skill.version}</span>
+                    <span>{formatDate(skill.lastModified)}</span>
+                  </div>
+                  <div class="skill-card__actions">
+                    <span class="skill-card__version">
+                      {skill.tags && skill.tags.length > 0 ? skill.tags.slice(0, 2).join(' / ') : ''}
+                    </span>
+                    <a
+                      href={`${BASE}downloads/${skill.zipFilename}`}
+                      class="btn-download"
+                      download
+                    >
+                      ↓ Download
+                      <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div id="empty-result" class="empty-result" hidden>
+            <p>沒找到符合 "<span id="empty-result-query"></span>" 的 skill。</p>
+            <p class="empty-result__hint">試試其他關鍵字，或 <button type="button" id="empty-result-clear" class="link-button">瀏覽全部</button>。</p>
+          </div>
+        </section>
       </>
     )}
 
@@ -221,12 +288,12 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
 </Layout>
 
 <script>
-  // 篩選邏輯：純 vanilla，無框架依賴
-  // 行為規格：
-  //   - filter 多選：點分類 = toggle、點 All = 清空所有分類選擇
-  //   - search：搜 name + description + tags，即時過濾
-  //   - filter Set 與 search query 是 AND 關係（同時收窄）
-  //   - 結果為 0 顯示 empty-result，Clear all 在「filter 有選 或 search 有字」時顯示
+  // 篩選邏輯:純 vanilla,無框架依賴
+  // 行為規格:
+  //   - filter 多選:點分類 = toggle、點 All = 清空所有分類選擇
+  //   - search:搜 name + description + tags,即時過濾
+  //   - filter Set 與 search query 是 AND 關係(同時收窄)
+  //   - 結果為 0 顯示 empty-result,Clear all 在「filter 有選 或 search 有字」時顯示
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
   const cards = document.querySelectorAll<HTMLElement>('.skill-card');
   const searchInput = document.getElementById('skill-search') as HTMLInputElement | null;
@@ -237,7 +304,7 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
   const skillList = document.getElementById('skill-list');
 
   // state
-  const activeFilters = new Set<string>(); // 空 Set = All（不過濾分類）
+  const activeFilters = new Set<string>(); // 空 Set = All(不過濾分類)
   let searchQuery = '';
 
   function applyFilters(): void {
@@ -250,10 +317,7 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
       const tags = card.dataset.tags || '';
       const desc = card.dataset.searchText || '';
 
-      // 分類條件：Set 為空 = 全通過；否則須命中 Set 內任一
       const categoryMatch = activeFilters.size === 0 || activeFilters.has(cat);
-
-      // 搜尋條件：query 為空 = 全通過；否則名稱 / 描述 / tags 任一含 query
       const searchMatch =
         q === '' || name.includes(q) || desc.includes(q) || tags.includes(q);
 
@@ -262,7 +326,6 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
       if (visible) visibleCount++;
     });
 
-    // empty state
     if (emptyResult && emptyResultQuery && skillList) {
       if (visibleCount === 0) {
         emptyResultQuery.textContent = q !== '' ? q : '(目前篩選條件)';
@@ -274,14 +337,12 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
       }
     }
 
-    // Clear all 按鈕顯示條件
     if (clearBtn) {
       const hasFilter = activeFilters.size > 0;
       const hasQuery = q !== '';
       clearBtn.hidden = !(hasFilter || hasQuery);
     }
 
-    // filter button 的 active 狀態
     filterBtns.forEach((b) => {
       const f = b.dataset.filter || '';
       const isActive =
@@ -292,17 +353,14 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
     });
   }
 
-  // filter buttons
   filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const filter = btn.dataset.filter;
       if (!filter) return;
 
       if (filter === 'all') {
-        // All 是「清空 filter」的捷徑
         activeFilters.clear();
       } else {
-        // toggle:已選的取消、未選的加入
         if (activeFilters.has(filter)) {
           activeFilters.delete(filter);
         } else {
@@ -314,7 +372,6 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
     });
   });
 
-  // search input
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       searchQuery = searchInput.value;
@@ -322,7 +379,6 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
     });
   }
 
-  // clear all
   function resetAll(): void {
     activeFilters.clear();
     searchQuery = '';
@@ -337,6 +393,5 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
     emptyResultClear.addEventListener('click', resetAll);
   }
 
-  // 初始化:套用一次,確保 All 在 active 狀態、Clear all 隱藏
   applyFilters();
 </script>
