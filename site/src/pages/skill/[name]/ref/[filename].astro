@@ -1,1 +1,114 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import catalog from '../../../../data/skills.generated.json';
+import type { SkillMeta } from '../../../../types';
+import { renderMarkdown, extractToc } from '../../../../lib/markdown';
 
+export function getStaticPaths() {
+  const skills = (catalog.skills as SkillMeta[]) || [];
+  const paths: Array<{ params: { name: string; filename: string }; props: { skill: SkillMeta; refIdx: number } }> = [];
+  for (const skill of skills) {
+    if (!skill.references) continue;
+    skill.references.forEach((ref, refIdx) => {
+      paths.push({
+        params: { name: skill.name, filename: ref.slug },
+        props: { skill, refIdx },
+      });
+    });
+  }
+  return paths;
+}
+
+interface Props {
+  skill: SkillMeta;
+  refIdx: number;
+}
+
+const { skill, refIdx } = Astro.props;
+const ref = skill.references[refIdx];
+
+const BASE = import.meta.env.BASE_URL;
+
+// ref 子頁脈絡:references/xxx.md 提及要連到「同 skill 的另一個 ref」(../{slug})
+const renderedBody = renderMarkdown(ref.body, { refLinkPrefix: '../' });
+const toc = extractToc(renderedBody);
+
+// 同 skill 的其他 ref(給側邊 nav)
+const siblingRefs = skill.references.filter((_, i) => i !== refIdx);
+---
+
+<Layout title={`${ref.filename} — ${skill.name}`} description={ref.firstLine || `Reference file from ${skill.name}`}>
+  <div class="container">
+    {/* 麵包屑 */}
+    <nav class="breadcrumb" aria-label="breadcrumb">
+      <a href={BASE}>index</a>
+      <span class="breadcrumb__sep">/</span>
+      <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
+      <span class="breadcrumb__sep">/</span>
+      <span class="breadcrumb__current mono">references/{ref.filename}</span>
+    </nav>
+
+    <header class="ref-header">
+      <div class="ref-header__kicker">Reference file</div>
+      <h1 class="ref-header__title mono">references/{ref.filename}</h1>
+      {ref.firstLine && (
+        <p class="ref-header__intro">{ref.firstLine}</p>
+      )}
+      <div class="ref-header__nav">
+        <a href={`${BASE}skill/${skill.name}`} class="ref-header__back">
+          ← 回到 {skill.name}
+        </a>
+      </div>
+    </header>
+
+    <div class="ref-layout">
+      {(toc.length > 0 || siblingRefs.length > 0) && (
+        <aside class="ref-sidebar">
+          {toc.length > 0 && (
+            <div class="toc">
+              <div class="toc__label">本頁目錄</div>
+              <ul class="toc__list">
+                {toc.filter((t) => t.level === 2).map((t) => (
+                  <li><a href={`#${t.id}`}>{t.text}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {siblingRefs.length > 0 && (
+            <div class="ref-siblings">
+              <div class="toc__label">同 skill 的其他 references</div>
+              <ul class="toc__list">
+                {siblingRefs.map((r) => (
+                  <li><a href={`${BASE}skill/${skill.name}/ref/${r.slug}`}>{r.filename}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+      )}
+      <article class="skill-body ref-body" set:html={renderedBody}></article>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const tocLinks = document.querySelectorAll<HTMLAnchorElement>('.toc__list a[href^="#"]');
+  if (tocLinks.length > 0) {
+    const headings = document.querySelectorAll<HTMLElement>('.ref-body h2[id]');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            tocLinks.forEach((a) => {
+              a.classList.toggle('is-active', a.getAttribute('href') === `#${id}`);
+            });
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -70% 0px' },
+    );
+    headings.forEach((h) => observer.observe(h));
+  }
+</script>
