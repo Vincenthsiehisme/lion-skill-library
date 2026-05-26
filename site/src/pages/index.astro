@@ -55,6 +55,55 @@ const COMMON_TASKS: Array<{ task: string; skill: string; blurb: string }> = [
 ];
 const skillNames = new Set(skills.map((s) => s.name));
 const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
+
+// ─────────────────────────────────────────────────────────────
+// Recent · 兩條時間軸
+// - 新發布:firstPublished 在 14 天內
+// - 新版本:versionBumpedAt 在 14 天內,且不在新發布清單裡(避免雙重出現)
+// 各取最近 5 個。任一邊空就整邊不顯示;兩邊都空整段不顯示。
+// ─────────────────────────────────────────────────────────────
+const RECENT_WINDOW_DAYS = 14;
+const RECENT_LIMIT = 5;
+const now = Date.now();
+const windowMs = RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+function withinWindow(iso: string): boolean {
+  if (!iso) return false;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) && now - t <= windowMs;
+}
+
+function daysAgo(iso: string): string {
+  const ms = now - new Date(iso).getTime();
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  if (days <= 0) return '今天';
+  if (days === 1) return '昨天';
+  if (days < 7) return `${days} 天前`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks} 週前`;
+}
+
+const newReleases = skills
+  .filter((s) => withinWindow(s.firstPublished))
+  .sort((a, b) => (a.firstPublished < b.firstPublished ? 1 : -1))
+  .slice(0, RECENT_LIMIT);
+
+const newReleaseNames = new Set(newReleases.map((s) => s.name));
+
+const newVersions = skills
+  .filter(
+    (s) =>
+      withinWindow(s.versionBumpedAt) &&
+      // 排除已在新發布清單的（避免同一個 skill 雙重出現）
+      !newReleaseNames.has(s.name) &&
+      // 排除「versionBumpedAt 等於 firstPublished」的情況
+      // (因為這代表 version 從沒 bump 過,只是初始 commit)
+      s.versionBumpedAt !== s.firstPublished,
+  )
+  .sort((a, b) => (a.versionBumpedAt < b.versionBumpedAt ? 1 : -1))
+  .slice(0, RECENT_LIMIT);
+
+const showRecent = newReleases.length > 0 || newVersions.length > 0;
 ---
 
 <Layout>
@@ -123,6 +172,58 @@ const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        <!-- ─────────────────────────────────────────────────────────
+             Recent · 給「回訪的人」的雙線時間軸
+             ───────────────────────────────────────────────────────── -->
+        {showRecent && (
+          <section class="recent">
+            <div class="recent__header">
+              <h2 class="recent__title">最近動態</h2>
+              <span class="recent__hint">{RECENT_WINDOW_DAYS} 天內的變化</span>
+            </div>
+            <div class="recent__cols">
+              {newReleases.length > 0 && (
+                <div class="recent__col">
+                  <div class="recent__col-label">新發布</div>
+                  <ul class="recent__list">
+                    {newReleases.map((s) => (
+                      <li>
+                        <a href={`${BASE}skill/${s.name}`} class="recent-item">
+                          <span class="recent-item__name">{s.name}</span>
+                          <span class="recent-item__meta">
+                            <span class="recent-item__when">{daysAgo(s.firstPublished)}</span>
+                            <span class="recent-item__sep">·</span>
+                            <span class="recent-item__version">v{s.version}</span>
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {newVersions.length > 0 && (
+                <div class="recent__col">
+                  <div class="recent__col-label">新版本</div>
+                  <ul class="recent__list">
+                    {newVersions.map((s) => (
+                      <li>
+                        <a href={`${BASE}skill/${s.name}`} class="recent-item">
+                          <span class="recent-item__name">{s.name}</span>
+                          <span class="recent-item__meta">
+                            <span class="recent-item__when">{daysAgo(s.versionBumpedAt)}</span>
+                            <span class="recent-item__sep">·</span>
+                            <span class="recent-item__version">v{s.version}</span>
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </section>
         )}
 
