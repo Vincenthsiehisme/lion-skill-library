@@ -39,7 +39,6 @@ function formatDate(iso: string): string {
 const totalCount = skills.length;
 const generatedAt = catalog.generatedAt ? formatDate(catalog.generatedAt) : '';
 const BASE = import.meta.env.BASE_URL;
-const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
 
 // ─────────────────────────────────────────────────────────────
 // Common tasks: hardcode 的「卡情境」入口
@@ -116,6 +115,9 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
       <p class="hero__sub">
         每個 Skill 是一組指令 + 參考檔案。安裝後，Claude 會在對應情境自動觸發。
         下載 zip、放進 <code>~/.claude/skills/</code>、重啟 Claude — 完成。
+      </p>
+      <p class="hero__install-hint">
+        完整教學、Claude Code 安裝、常見問題 → <a href={`${BASE}install`}>安裝教學</a>
       </p>
       <div class="hero__meta">
         <span><strong>{totalCount}</strong> skills indexed</span>
@@ -335,56 +337,6 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
         </section>
       </>
     )}
-
-    <section id="how-to-install" style="margin-top: 6rem; padding-top: 3rem; border-top: 1px solid var(--color-line);">
-      <h2 style="margin-bottom: 0.5rem;">How to install</h2>
-      <p style="color: var(--color-ink-muted); margin-bottom: 2rem;">
-        兩條路:用 Claude Code 一行指令最快;手動下載 zip 適合任何 Claude 版本。
-      </p>
-
-      <div class="install-routes">
-        <!-- 路 A:腳本 -->
-        <div class="install-route">
-          <div class="install-route__head">
-            <span class="install-route__badge">路 A</span>
-            <span class="install-route__title">一行指令 · Claude Code</span>
-          </div>
-          <p class="install-route__sub">最快路徑。<strong>macOS / Linux</strong>:</p>
-          <pre class="install-route__code"><code>curl -fsSL {SITE}/install.sh | bash -s -- install &lt;name&gt;</code></pre>
-          <p class="install-route__sub" style="margin-top: 0.75rem;"><strong>Windows PowerShell</strong>:</p>
-          <pre class="install-route__code"><code>iwr {SITE}/install.ps1 -useb -OutFile install.ps1
-.\install.ps1 install &lt;name&gt;</code></pre>
-          <p class="install-route__note">
-            兩平台指令選項一致(<code>list</code> / <code>install --all</code> / <code>--scope project</code> / <code>--force</code>)。完整教學見下方。
-          </p>
-        </div>
-
-        <!-- 路 B:手動 -->
-        <div class="install-route">
-          <div class="install-route__head">
-            <span class="install-route__badge">路 B</span>
-            <span class="install-route__title">手動下載 zip · 任何版本</span>
-          </div>
-          <p class="install-route__sub">適合 Windows、Claude.ai 網頁版,或不想跑 curl。</p>
-          <ol class="install-route__steps">
-            <li>從上方列表點 <strong>Download</strong> 拿到 <code>.zip</code></li>
-            <li>解壓出來的資料夾放到:
-              <ul>
-                <li>macOS / Linux: <code>~/.claude/skills/</code></li>
-                <li>Windows: <code>%USERPROFILE%\.claude\skills\</code></li>
-                <li>Claude.ai: 到 Settings → Capabilities → Skills 上傳</li>
-              </ul>
-            </li>
-            <li>重啟 Claude</li>
-          </ol>
-        </div>
-      </div>
-
-      <p class="install-routes__more">
-        <a href={`${BASE}install`}>→ 完整教學</a>
-        <span style="color: var(--color-ink-faint);">(含 Claude Code 安裝步驟、所有指令選項、FAQ)</span>
-      </p>
-    </section>
   </div>
 </Layout>
 
