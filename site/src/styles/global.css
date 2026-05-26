@@ -1,26 +1,25 @@
 /* ==========================================================================
    Lion Skill Library — global styles
    ==========================================================================
-   美學方向：refined utility / Stripe Press 風
-   參考：乾淨的技術內網、現代 reference site
-   特色：Inter 黑體、極淺米白底、暖灰 accent、卡片網格、零斜體、克制動態
-   絕對不要：紫色漸層、卡片陰影氾濫、generic SaaS aesthetic、任何 italic
+   美學方向:refined utility / Stripe Press 風
+   參考:乾淨的技術內網、現代 reference site
+   特色:Inter 黑體、極淺米白底、暖灰 accent、卡片網格、零斜體、克制動態
+   絕對不要:紫色漸層、卡片陰影氾濫、generic SaaS aesthetic、任何 italic
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   /* ----- Palette: warm-neutral utility ----- */
-  --color-paper: #fafaf8;          /* 極淺米白,不刺眼 */
-  --color-paper-dim: #f1f1ee;      /* 區塊背景 */
-  --color-ink: #1a1a1a;             /* 主文字,中性深 */
-  --color-ink-muted: #525252;       /* 副文字 + accent (Stripe Press 風) */
-  --color-ink-faint: #8a8a8a;       /* 元 metadata */
-  --color-line: #e2e2de;            /* 分隔線 */
-  --color-accent: #525252;          /* 暖灰 accent — 取代原本磚紅 */
-  --color-accent-bg: #ececea;       /* hover/active 區塊背景 */
+  --color-paper: #fafaf8;
+  --color-paper-dim: #f1f1ee;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #525252;
+  --color-ink-faint: #8a8a8a;
+  --color-line: #e2e2de;
+  --color-accent: #525252;
+  --color-accent-bg: #ececea;
 
-  /* category 標籤色:全部改為中性灰階階層,移除 editorial 紫紅系 */
   --color-cat-planning: #2e2e2e;
   --color-cat-writing:  #3d3d3d;
   --color-cat-review:   #4a4a4a;
@@ -29,12 +28,16 @@
   --color-cat-utility:  #404040;
   --color-cat-domain:   #4a4a4a;
 
-  /* ----- Typography ----- */
+  /* 警告色(at-glance 卡片用,克制使用) */
+  --color-warn: #8a6d3b;
+  --color-warn-bg: #f6efd9;
+  --color-neg: #6b4444;
+  --color-neg-bg: #f3e8e8;
+
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
   --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
   --font-mono:    'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
-  /* ----- Spacing scale ----- */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -43,12 +46,11 @@
   --space-2xl: 4rem;
   --space-3xl: 6rem;
 
-  /* ----- Layout ----- */
   --max-width: 72rem;
   --max-width-prose: 42rem;
+  --max-width-detail: 64rem;
 
-  /* ----- Brand mark ----- */
-  --brand-mark-color: #1a1a1a;     /* ▎ 直線重點 mark,黑色與標題對齊 */
+  --brand-mark-color: #1a1a1a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -61,12 +63,15 @@
     --color-line:       #2a2a2a;
     --color-accent:     #a3a3a3;
     --color-accent-bg:  #1f1f1f;
+    --color-warn:       #d4b773;
+    --color-warn-bg:    #2a2418;
+    --color-neg:        #c89797;
+    --color-neg-bg:     #2a1f1f;
     --brand-mark-color: #ededed;
   }
 }
 
-/* ----- Global hard rule: NO italics anywhere -----
-   全站零斜體。即使瀏覽器預設給 <em>/<address>/<i>/<cite> 等斜體,也覆蓋。 */
+/* 全站零斜體 */
 em, i, cite, address, var, dfn, blockquote {
   font-style: normal;
 }
@@ -84,6 +89,7 @@ html {
   background: var(--color-paper);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -91,7 +97,6 @@ body {
   font-size: 16px;
 }
 
-/* ----- Typography primitives ----- */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 600;
@@ -138,7 +143,6 @@ hr {
   margin: var(--space-lg) 0;
 }
 
-/* ----- Layout container ----- */
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
@@ -184,7 +188,6 @@ hr {
   color: var(--brand-mark-color);
   font-weight: 700;
   display: inline-block;
-  /* ▎ 視覺微調:略往下 align */
   transform: translateY(0.05em);
 }
 
@@ -220,7 +223,7 @@ hr {
   flex-wrap: wrap;
 }
 
-/* ----- Hero ----- */
+/* ----- Hero (index page) ----- */
 .hero {
   margin-bottom: var(--space-2xl);
 }
@@ -312,9 +315,7 @@ hr {
   color: var(--color-paper-dim);
 }
 
-/* ==========================================================================
-   Skill grid — 卡片網格(取代列式 row 布局)
-   ========================================================================== */
+/* ----- Skill grid (index) ----- */
 .skill-grid {
   list-style: none;
   display: grid;
@@ -397,7 +398,7 @@ hr {
   color: var(--color-ink-faint);
 }
 
-/* category badge — 統一灰階版 */
+/* category badges */
 .cat-badge {
   display: inline-block;
   font-family: var(--font-mono);
@@ -449,16 +450,46 @@ hr {
   opacity: 0.75;
 }
 
+.btn-download--large {
+  font-size: 0.9375rem;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.btn-secondary {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-ink-muted);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
 /* ----- Empty state ----- */
 .empty {
   text-align: center;
   padding: var(--space-3xl) 0;
   color: var(--color-ink-faint);
-  /* 零斜體 — 改用 letter-spacing 與 font-weight 區隔 */
   letter-spacing: 0.02em;
 }
 
-/* ----- Skill detail page ----- */
+/* ============================================================
+   詳情頁(新版 marketplace 風)
+   ============================================================ */
+
 .detail-back {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
@@ -472,95 +503,479 @@ hr {
   color: var(--color-ink);
 }
 
-.detail-header {
+/* ── Hero ── */
+.hero-detail {
+  padding: var(--space-xl) 0 var(--space-2xl);
+  border-bottom: 1px solid var(--color-line);
   margin-bottom: var(--space-2xl);
-  padding-bottom: var(--space-lg);
-  border-bottom: 1px solid var(--color-ink);
 }
 
-.detail-title {
-  font-size: clamp(2rem, 4.5vw, 3rem);
-  letter-spacing: -0.025em;
-  margin-bottom: var(--space-md);
-  font-weight: 700;
-}
-
-.detail-meta {
+.hero-detail__head {
   display: flex;
-  gap: var(--space-lg);
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
   flex-wrap: wrap;
+}
+
+.hero-detail__version,
+.hero-detail__date,
+.hero-detail__commit {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  color: var(--color-ink-muted);
-  margin-bottom: var(--space-lg);
-}
-
-.detail-meta strong {
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
-.detail-description {
-  font-size: 1.0625rem;
-  color: var(--color-ink-muted);
-  margin-bottom: var(--space-lg);
-  /* 零斜體 — 改用左 border + padding 區隔,不再 italic */
-  border-left: 3px solid var(--color-line);
-  padding-left: var(--space-md);
-  line-height: 1.6;
-}
-
-.detail-actions {
-  display: flex;
-  gap: var(--space-md);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.btn-download--large {
-  font-size: 0.9375rem;
-  padding: var(--space-sm) var(--space-lg);
-}
-
-.related-skills {
-  margin-top: var(--space-md);
-  font-size: 0.875rem;
   color: var(--color-ink-faint);
 }
 
-.related-skills strong {
-  color: var(--color-ink-muted);
+.hero-detail__title {
+  font-size: clamp(2.25rem, 4.5vw, 3.25rem);
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+  line-height: 1.15;
 }
 
-.related-skills a {
+.hero-detail__pitch {
+  font-size: 1.125rem;
   color: var(--color-ink-muted);
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+  max-width: 48rem;
+}
+
+.hero-detail__cta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.hero-detail__tags {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-md);
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-ink-muted);
+  background: var(--color-paper-dim);
+  border: 1px solid var(--color-line);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+/* ── Section heading 通用 ── */
+.section-heading {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* ── At a glance ── */
+.at-glance {
+  margin-bottom: var(--space-2xl);
+}
+
+.at-glance__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+.at-glance__card {
+  background: var(--color-paper-dim);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: var(--space-lg);
+  border-left: 3px solid var(--color-ink);
+}
+
+.at-glance__card--neg {
+  border-left-color: var(--color-neg);
+  background: var(--color-neg-bg);
+}
+
+.at-glance__card--warn {
+  border-left-color: var(--color-warn);
+  background: var(--color-warn-bg);
+}
+
+.at-glance__card-title {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink);
+  margin-bottom: var(--space-sm);
+}
+
+.at-glance__card--neg .at-glance__card-title { color: var(--color-neg); }
+.at-glance__card--warn .at-glance__card-title { color: var(--color-warn); }
+
+.at-glance__card-body {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-ink);
+}
+
+.at-glance__gotcha-list,
+.at-glance__related-list {
+  list-style: none;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.at-glance__gotcha-list li,
+.at-glance__related-list li {
+  padding: 3px 0;
+  color: var(--color-ink);
+}
+
+.at-glance__gotcha-list li::before {
+  content: "⚠ ";
+  color: var(--color-warn);
+  font-weight: 700;
+  margin-right: 0.25em;
+}
+
+.at-glance__more {
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+  margin-top: var(--space-sm);
+  display: inline-block;
+}
+
+/* ── How it works(主體 + sticky TOC)── */
+.how-it-works {
+  margin-bottom: var(--space-2xl);
+}
+
+.how-it-works__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: var(--space-2xl);
+  align-items: start;
+}
+
+.toc {
+  position: sticky;
+  top: var(--space-lg);
+  border-left: 2px solid var(--color-line);
+  padding: var(--space-sm) 0 var(--space-sm) var(--space-md);
+  font-size: 0.8125rem;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+.toc__label {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ink-faint);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.toc__list {
+  list-style: none;
+  padding: 0;
+}
+
+.toc__list li {
+  margin-bottom: var(--space-xs);
+}
+
+.toc__list a {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  display: block;
+  padding: 3px 0;
+  line-height: 1.45;
+  border-left: 2px solid transparent;
+  padding-left: var(--space-sm);
+  margin-left: calc(-1 * var(--space-sm));
+  transition: all 0.12s ease;
+}
+
+.toc__list a:hover {
+  color: var(--color-ink);
+}
+
+.toc__list a.is-active {
+  color: var(--color-ink);
+  border-left-color: var(--color-ink);
+  font-weight: 500;
+}
+
+/* ── References 清單 ── */
+.references-section {
+  margin-bottom: var(--space-2xl);
+}
+
+.references-section__intro {
+  font-size: 0.9375rem;
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-lg);
+  max-width: 48rem;
+  line-height: 1.6;
+}
+
+.ref-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
+}
+
+.ref-list__item {
+  padding: 0;
+}
+
+.ref-list__link {
+  display: block;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--color-ink);
+  transition: border-color 0.15s ease;
+}
+
+.ref-list__link:hover {
+  border-color: var(--color-ink-muted);
+  text-decoration: none;
+}
+
+.ref-list__filename {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+}
+
+.ref-list__arrow {
+  font-family: var(--font-mono);
+  color: var(--color-ink-faint);
+  transition: transform 0.15s ease;
+}
+
+.ref-list__link:hover .ref-list__arrow {
+  transform: translateX(3px);
+  color: var(--color-ink);
+}
+
+.ref-list__preview {
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* SKILL.md 內自動轉成的 ref 內部連結 */
+.ref-link {
+  text-decoration: none;
+  border-bottom: 1px dashed var(--color-ink-muted);
+}
+
+.ref-link:hover {
+  border-bottom-style: solid;
+  border-bottom-color: var(--color-ink);
+}
+
+.ref-link code {
+  background: transparent;
+  border: none;
+  padding: 0 0.1em;
+  color: inherit;
+}
+
+/* ── Install 區塊 ── */
+.install-section {
+  margin-bottom: var(--space-2xl);
+}
+
+.install-box {
+  background: var(--color-paper-dim);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: var(--space-lg);
+}
+
+.install-box__title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ink-faint);
+  margin-bottom: var(--space-md);
+  font-weight: 500;
+}
+
+.install-box ol {
+  padding-left: var(--space-lg);
+}
+
+.install-box li {
+  margin-bottom: var(--space-sm);
+}
+
+/* ============================================================
+   Reference 子頁(/skill/{name}/ref/{slug})
+   ============================================================ */
+
+.breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-ink-faint);
+  margin: var(--space-md) 0 var(--space-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.breadcrumb a {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--color-ink);
   text-decoration: underline;
-  text-decoration-color: var(--color-line);
 }
 
-/* Body content (rendered SKILL.md) */
+.breadcrumb__sep {
+  color: var(--color-line);
+}
+
+.breadcrumb__current {
+  color: var(--color-ink);
+}
+
+.ref-header {
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-line);
+  margin-bottom: var(--space-2xl);
+}
+
+.ref-header__kicker {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+  margin-bottom: var(--space-sm);
+}
+
+.ref-header__title {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-md);
+  word-break: break-all;
+}
+
+.ref-header__intro {
+  font-size: 1rem;
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+}
+
+.ref-header__nav {
+  margin-top: var(--space-md);
+}
+
+.ref-header__back {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+}
+
+.ref-header__back:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+.ref-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-2xl);
+  align-items: start;
+}
+
+.ref-sidebar {
+  position: sticky;
+  top: var(--space-lg);
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+.ref-siblings {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-line);
+}
+
+.ref-body {
+  /* 與 .skill-body 共用樣式 */
+}
+
+/* ============================================================
+   Markdown body 樣式(SKILL.md / ref 共用)
+   ============================================================ */
+
 .skill-body {
   font-size: 1rem;
   line-height: 1.75;
 }
 
-.skill-body h1, .skill-body h2 {
+.skill-body h1,
+.skill-body h2 {
   margin-top: var(--space-xl);
   margin-bottom: var(--space-md);
   padding-bottom: var(--space-xs);
   border-bottom: 1px solid var(--color-line);
+  scroll-margin-top: var(--space-lg);
+}
+
+.skill-body h2:first-child,
+.skill-body h1:first-child {
+  margin-top: 0;
 }
 
 .skill-body h3 {
   margin-top: var(--space-lg);
   margin-bottom: var(--space-sm);
+  scroll-margin-top: var(--space-lg);
 }
 
-.skill-body p, .skill-body ul, .skill-body ol {
+.skill-body p,
+.skill-body ul,
+.skill-body ol {
   margin-bottom: var(--space-md);
 }
 
-.skill-body ul, .skill-body ol {
+.skill-body ul,
+.skill-body ol {
   padding-left: var(--space-lg);
 }
 
@@ -590,43 +1005,17 @@ hr {
   padding-left: var(--space-md);
   margin: var(--space-md) 0;
   color: var(--color-ink-muted);
-  /* 零斜體 — 已在最上方全域規則覆蓋 */
 }
 
-/* skill-body 內 strong 標示(取代原本 em 斜體強調) */
 .skill-body strong {
   color: var(--color-ink);
   font-weight: 600;
 }
 
-/* ----- Install instructions ----- */
-.install-box {
-  background: var(--color-paper-dim);
-  border: 1px solid var(--color-line);
-  border-radius: 4px;
-  padding: var(--space-lg);
-  margin-top: var(--space-lg);
-}
+/* ============================================================
+   保留:首頁的 install routes 兩條路樣式
+   ============================================================ */
 
-.install-box__title {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--color-ink-faint);
-  margin-bottom: var(--space-md);
-  font-weight: 500;
-}
-
-.install-box ol {
-  padding-left: var(--space-lg);
-}
-
-.install-box li {
-  margin-bottom: var(--space-sm);
-}
-
-/* ----- Install routes (兩條路並列) ----- */
 .install-routes {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -738,19 +1127,69 @@ hr {
   color: var(--color-accent);
 }
 
-/* ----- Responsive ----- */
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 960px) {
+  /* 詳情頁:TOC 改回主體下方 */
+  .how-it-works__layout {
+    grid-template-columns: 1fr;
+  }
+  .toc {
+    position: static;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid var(--color-line);
+    padding-top: var(--space-md);
+    padding-left: 0;
+    margin-bottom: var(--space-lg);
+    order: -1; /* TOC 放在主體之前(行動端當「跳轉用」)*/
+  }
+  .toc__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .toc__list li {
+    margin: 0;
+  }
+  .toc__list a {
+    padding: 4px 10px;
+    border: 1px solid var(--color-line);
+    border-radius: 3px;
+    border-left: 1px solid var(--color-line);
+    margin-left: 0;
+    padding-left: 10px;
+  }
+  .toc__list a.is-active {
+    border-color: var(--color-ink);
+    border-left-color: var(--color-ink);
+  }
+
+  /* Ref 子頁:sidebar 收上去 */
+  .ref-layout {
+    grid-template-columns: 1fr;
+  }
+  .ref-sidebar {
+    position: static;
+    max-height: none;
+    order: -1;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-line);
+    margin-bottom: var(--space-md);
+  }
+}
+
 @media (max-width: 720px) {
   body { font-size: 15px; }
-  .hero__title { font-size: 2rem; }
-  .skill-grid {
-    grid-template-columns: 1fr;
-  }
+  .hero__title,
+  .hero-detail__title { font-size: 2rem; }
+  .skill-grid { grid-template-columns: 1fr; }
+  .at-glance__grid { grid-template-columns: 1fr; }
+  .ref-list { grid-template-columns: 1fr; }
   .site-header__inner { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
   .site-nav { font-size: 0.8125rem; }
-  .install-routes {
-    grid-template-columns: 1fr;
-  }
-  .install-route__code {
-    font-size: 0.75rem;
-  }
+  .install-routes { grid-template-columns: 1fr; }
+  .install-route__code { font-size: 0.75rem; }
 }
