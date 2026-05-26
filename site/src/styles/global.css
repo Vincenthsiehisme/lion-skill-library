@@ -270,6 +270,140 @@ hr {
   font-weight: 600;
 }
 
+/* ----- Search bar (A1) ----- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.search-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-ink-faint);
+  font-size: 1rem;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.search-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 0.625rem var(--space-md) 0.625rem 2.25rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.search-input:hover {
+  border-color: var(--color-ink-muted);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-ink);
+  background: var(--color-paper);
+}
+
+/* 移除 webkit search input 預設清除按鈕的奇怪樣式（保留功能,但統一視覺） */
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  background: var(--color-ink-faint);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 4l8 8M12 4l-8 8' stroke='black' stroke-width='2'/></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 4l8 8M12 4l-8 8' stroke='black' stroke-width='2'/></svg>") center / contain no-repeat;
+  cursor: pointer;
+}
+
+.btn-clear-filters {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  background: transparent;
+  border: 1px solid var(--color-line);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-filters:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink-muted);
+}
+
+.btn-clear-filters[hidden] {
+  display: none;
+}
+
+/* Empty result state (A1) */
+.empty-result {
+  padding: var(--space-3xl) var(--space-lg);
+  text-align: center;
+  color: var(--color-ink-muted);
+  border: 1px dashed var(--color-line);
+  border-radius: 6px;
+  background: var(--color-paper-dim);
+}
+
+.empty-result p {
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-result p:last-child {
+  margin-bottom: 0;
+}
+
+.empty-result__hint {
+  font-size: 0.875rem;
+  color: var(--color-ink-faint);
+}
+
+.empty-result[hidden] {
+  display: none;
+}
+
+/* 行內 link-style button(用於 empty-result「瀏覽全部」) */
+.link-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
+}
+
+.link-button:hover {
+  color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
+}
+
 /* ----- Filter bar ----- */
 .filter-bar {
   display: flex;
@@ -1192,4 +1326,12 @@ hr {
   .site-nav { font-size: 0.8125rem; }
   .install-routes { grid-template-columns: 1fr; }
   .install-route__code { font-size: 0.75rem; }
+
+  /* search bar 行動版:Clear all 可換行 */
+  .search-bar {
+    flex-wrap: wrap;
+  }
+  .btn-clear-filters {
+    margin-left: auto;
+  }
 }
