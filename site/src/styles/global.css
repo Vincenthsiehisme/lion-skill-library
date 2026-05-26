@@ -662,7 +662,7 @@ hr {
 
 .how-it-works__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: var(--space-2xl);
   align-items: start;
 }
