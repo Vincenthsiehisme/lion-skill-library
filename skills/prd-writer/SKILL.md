@@ -1,10 +1,10 @@
 ---
 name: prd-writer
 version: 0.1.0
-category: PM
+category: planning
 tags:
   - prd
-  - planning
+  - PM
   - product-management
   - opportunity
 description: |
