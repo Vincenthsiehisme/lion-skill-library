@@ -1,3 +1,16 @@
+export interface SkillReference {
+  slug: string;
+  filename: string;
+  firstLine: string;
+  body: string;
+}
+
+export interface AtGlance {
+  triggerKeywords: string | null;
+  doNotTrigger: string | null;
+  gotchaTitles: string[];
+}
+
 export interface SkillMeta {
   name: string;
   description: string;
@@ -12,6 +25,8 @@ export interface SkillMeta {
   zipSize: number;
   lastModified: string;
   commitHash: string;
+  references: SkillReference[];
+  atGlance: AtGlance;
 }
 
 export interface Catalog {
