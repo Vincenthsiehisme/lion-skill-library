@@ -27,6 +27,10 @@ interface Props {
 const { skill, refIdx } = Astro.props;
 const ref = skill.references[refIdx];
 
+if (!ref) {
+  return Astro.redirect(`${import.meta.env.BASE_URL}skill/${skill.name}`);
+}
+
 const BASE = import.meta.env.BASE_URL;
 
 // ref 子頁脈絡:references/xxx.md 提及要連到「同 skill 的另一個 ref」(../{slug})
