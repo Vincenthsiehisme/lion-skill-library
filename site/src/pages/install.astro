@@ -49,9 +49,20 @@ curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --scope proje
       <h3>所有指令一覽</h3>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- help</code></pre>
 
-      <p style="margin-top: 1.5rem; font-size: 0.875rem; color: var(--color-ink-faint);">
-        <strong>支援平台:</strong>macOS / Linux。Windows PowerShell 版本準備中。
+      <h3 style="margin-top: 2rem;">Windows · PowerShell</h3>
+      <p>Windows 使用者用這套(也支援 PowerShell on macOS / Linux)。先下載 ps1 到本機:</p>
+<pre><code>iwr {SITE}/install.ps1 -useb -OutFile install.ps1</code></pre>
+      <p>然後跑指令:</p>
+<pre><code>.\install.ps1 list
+.\install.ps1 install example-greeting
+.\install.ps1 install --all
+.\install.ps1 install example-greeting --scope project
+.\install.ps1 install example-greeting --force</code></pre>
+
+      <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--color-ink-faint);">
+        <strong>ExecutionPolicy 被擋?</strong>用這條一次性 bypass(不改全域設定):
       </p>
+<pre><code>powershell -ExecutionPolicy Bypass -File .\install.ps1 install example-greeting</code></pre>
 
 
       <!-- ════════════════════════════════════════ -->
@@ -198,7 +209,21 @@ sudo apt install jq
 sudo yum install jq</code></pre>
 
       <h3>PowerShell 跑腳本被擋(ExecutionPolicy)</h3>
-      <p>Windows 版本準備中。目前 Windows 使用者請走<a href="#manual-download">路 B 手動下載</a>。</p>
+      <p>三種解法擇一:</p>
+      <ol>
+        <li><strong>一次性 bypass</strong>(不改全域,最推薦):
+<pre><code>powershell -ExecutionPolicy Bypass -File .\install.ps1 install example-greeting</code></pre>
+        </li>
+        <li><strong>當前 session 放行</strong>(關閉 PowerShell 就失效):
+<pre><code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
+        </li>
+        <li><strong>當前使用者永久放行</strong>(企業環境可能擋這條):
+<pre><code>Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</code></pre>
+        </li>
+      </ol>
+      <p style="font-size: 0.875rem; color: var(--color-ink-faint);">
+        三條都擋?走<a href="#manual-download">路 B 手動下載 zip</a>,沒人擋得了你拖檔案。
+      </p>
 
       <h3>公司 MIS 擋 GitHub Pages</h3>
       <p>跟 IT 部反映 <code>vincenthsiehisme.github.io</code> 是內部工具(自己人 maintain)需要解禁。或私訊 Vt 改用 USB 傳。</p>
