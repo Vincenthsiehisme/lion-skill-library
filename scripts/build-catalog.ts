@@ -3,29 +3,29 @@
  *
  * Reads:
  *   - skills/&#42;&#42;/SKILL.md (frontmatter + body)
+ *   - skills/&#42;&#42;/references/&#42;.md (subpages,平展讀取)
  *   - site/public/downloads/&#42;.zip (size)
  *   - git log (last commit date per skill)
  *
  * Writes:
  *   - site/src/data/skills.generated.json
- *
- * The site imports this JSON at build time.
+ *   - site/public/manifest.json(對外公開精簡版,給 install.sh / install.ps1 讀)
  */
 
 import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import matter from 'gray-matter';
-import { SkillFrontmatterSchema, type SkillMeta } from './schema.js';
+import {
+  SkillFrontmatterSchema,
+  type SkillMeta,
+  type SkillReference,
+  type AtGlance,
+} from './schema.js';
 
 const SKILLS_DIR = join(process.cwd(), 'skills');
 const DOWNLOADS_DIR = join(process.cwd(), 'site', 'public', 'downloads');
 const OUTPUT_FILE = join(process.cwd(), 'site', 'src', 'data', 'skills.generated.json');
-/**
- * 對外公開的 manifest（給 install.sh / install.ps1 讀的 API endpoint）。
- * 精簡版，不含 SKILL.md body 全文。部署後可從以下 URL 取得：
- *   https://<site>/<base>/manifest.json
- */
 const PUBLIC_MANIFEST_FILE = join(process.cwd(), 'site', 'public', 'manifest.json');
 const RESERVED = ['_template'];
 
@@ -48,12 +48,130 @@ function getGitInfo(skillFolder: string): { lastModified: string; commitHash: st
       commitHash: hash || 'unknown',
     };
   } catch {
-    // Not in a git repo (e.g. local dev before first commit)
     return {
       lastModified: new Date().toISOString(),
       commitHash: 'local',
     };
   }
+}
+
+/**
+ * 從一份 markdown 內文撈出第一行有意義的文字(略過標題、空行、frontmatter 殘留),
+ * 用來當清單上的摘要。
+ */
+function extractFirstLine(body: string): string {
+  const lines = body.split('\n');
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('#')) continue; // 略過標題
+    if (line.startsWith('---')) continue; // 略過分隔線
+    if (line.startsWith('>')) {
+      // 引用區塊也可以當摘要,但去掉 > 前綴
+      return line.replace(/^>+\s*/, '').slice(0, 120);
+    }
+    return line.slice(0, 120);
+  }
+  return '';
+}
+
+/**
+ * 把 references/xxx.md 的 filename 轉成 URL-safe slug(去掉 .md 副檔名)。
+ * 例:`prd-template.md` → `prd-template`
+ */
+function refSlug(filename: string): string {
+  return filename.replace(/\.md$/i, '');
+}
+
+/**
+ * 讀一個 skill 底下的 references/ 子資料夾,回傳平展清單。
+ * 不存在或非目錄一律回空陣列。
+ */
+function readReferences(skillFolder: string): SkillReference[] {
+  const refsDir = join(SKILLS_DIR, skillFolder, 'references');
+  if (!existsSync(refsDir)) return [];
+  const stat = statSync(refsDir);
+  if (!stat.isDirectory()) return [];
+
+  const entries = readdirSync(refsDir, { withFileTypes: true });
+  const refs: SkillReference[] = [];
+
+  for (const entry of entries) {
+    // 目前只處理單層 .md 檔案,子資料夾跳過
+    if (!entry.isFile()) continue;
+    if (!entry.name.toLowerCase().endsWith('.md')) continue;
+
+    const filePath = join(refsDir, entry.name);
+    const body = readFileSync(filePath, 'utf-8');
+    refs.push({
+      slug: refSlug(entry.name),
+      filename: entry.name,
+      firstLine: extractFirstLine(body),
+      body,
+    });
+  }
+
+  // 依檔名排序,輸出穩定
+  refs.sort((a, b) => a.filename.localeCompare(b.filename));
+  return refs;
+}
+
+/**
+ * 從 description 規則切出 At a glance 用的兩段:
+ *   - 觸發關鍵字
+ *   - DO NOT trigger for
+ * 切不到就回 null,前端就不顯示對應區塊。
+ *
+ * 同時從 SKILL.md body 撈 ## Gotchas 區段下的 ### 子標題,作為「常見踩雷」摘要。
+ */
+function extractAtGlance(description: string, body: string): AtGlance {
+  // --- 觸發關鍵字段 ---
+  // 匹配「觸發關鍵字」或「觸發詞」開頭、到下一個段落為止
+  const triggerMatch = description.match(
+    /(?:觸發關鍵字|觸發詞|trigger keywords?|trigger on)[::]\s*([\s\S]*?)(?=\n\s*\n|DO NOT|不適用|不要觸發|\n[*-]\s|$)/i,
+  );
+  const triggerKeywords = triggerMatch ? triggerMatch[1].trim().replace(/\s+/g, ' ') : null;
+
+  // --- DO NOT trigger 段 ---
+  const doNotMatch = description.match(
+    /(?:DO NOT trigger(?: for)?|不適用|不要觸發|不觸發)[::]?\s*([\s\S]*?)(?=\n\s*\n|$)/i,
+  );
+  const doNotTrigger = doNotMatch ? doNotMatch[1].trim().replace(/\s+/g, ' ') : null;
+
+  // --- Gotchas 標題清單 ---
+  // 找 ## Gotchas 區段(中英都接受),用雙策略撈標題:
+  //   策略 1:H3 標題(### G1:xxx)— coding-planner 風格
+  //   策略 2 fallback:列表項粗體(- **xxx**:)— prd-writer 風格
+  const gotchaTitles: string[] = [];
+  const gotchaSectionMatch = body.match(
+    /^##\s+(?:Gotchas?|常見踩雷|踩坑|錯誤模式)[^\n]*\n([\s\S]+?)(?=\n##\s|$(?![\r\n]))/im,
+  );
+  if (gotchaSectionMatch) {
+    const section = gotchaSectionMatch[1];
+
+    // 策略 1:H3
+    const h3Regex = /^###\s+(.+?)$/gm;
+    let m: RegExpExecArray | null;
+    while ((m = h3Regex.exec(section)) !== null) {
+      const title = m[1].trim().replace(/^\*\*|\*\*$/g, '');
+      if (title) gotchaTitles.push(title);
+    }
+
+    // 策略 2:H3 撈不到才 fallback 列表項粗體
+    if (gotchaTitles.length === 0) {
+      const listRegex = /^[-*]\s+\*\*([^*\n]+?)\*\*[::]/gm;
+      while ((m = listRegex.exec(section)) !== null) {
+        const title = m[1].trim();
+        if (title) gotchaTitles.push(title);
+      }
+    }
+  }
+
+  return {
+    triggerKeywords,
+    doNotTrigger,
+    gotchaTitles,
+  };
 }
 
 function buildSkillMeta(folder: string): SkillMeta {
@@ -68,13 +186,19 @@ function buildSkillMeta(folder: string): SkillMeta {
 
   const { lastModified, commitHash } = getGitInfo(folder);
 
+  const body = parsed.content.trim();
+  const references = readReferences(folder);
+  const atGlance = extractAtGlance(fm.description, body);
+
   return {
     ...fm,
-    body: parsed.content.trim(),
+    body,
     zipFilename,
     zipSize,
     lastModified,
     commitHash,
+    references,
+    atGlance,
   };
 }
 
@@ -108,9 +232,11 @@ function main(): void {
   );
 
   console.log(`  ✓ ${skills.length} skill(s) catalogued`);
+  const totalRefs = skills.reduce((sum, s) => sum + s.references.length, 0);
+  console.log(`  ✓ ${totalRefs} reference file(s) included`);
   console.log(`  ✓ Written to site/src/data/skills.generated.json`);
 
-  // 額外吐一份對外公開的精簡 manifest（給 install.sh / install.ps1 讀）
+  // 對外公開的精簡 manifest(不含 body / references body,只保留必要欄位)
   const publicManifest = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -119,7 +245,7 @@ function main(): void {
       name: s.name,
       version: s.version,
       category: s.category,
-      description: s.description.split('\n')[0].trim(), // 只取第一行摘要
+      description: s.description.split('\n')[0].trim(),
       tags: s.tags,
       zipFilename: s.zipFilename,
       zipSize: s.zipSize,
