@@ -83,10 +83,17 @@ export interface SkillMeta extends SkillFrontmatter {
   zipFilename: string;
   /** zip 大小，bytes */
   zipSize: number;
-  /** 最後 commit 日期 ISO 8601 — 用於「新版本」判定 */
+  /** 最後 commit 日期 ISO 8601 — 任何改動都會更新 */
   lastModified: string;
   /** 首次 commit 日期 ISO 8601 — 用於「新發布」判定 */
   firstPublished: string;
+  /**
+   * SKILL.md 的 version: 字串實際變動的最後一次 commit 日期 ISO 8601。
+   * - 用於「新版本」判定。
+   * - 與 lastModified 的差別:typo / reference 補丁不算 version bump。
+   * - fallback:若無歷史(skill 剛建立或 git 撈不到) → 等於 firstPublished。
+   */
+  versionBumpedAt: string;
   /** Git commit hash（short），對應 lastModified 那次 commit */
   commitHash: string;
   /** references/ 子檔清單,平展(目前不處理子資料夾) */
