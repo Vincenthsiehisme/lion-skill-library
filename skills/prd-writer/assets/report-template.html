@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>產品規劃報告：{{FEATURE_NAME}}</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --text: #e2e6f0;
+    --text-muted: #7b82a0;
+    --accent: #5b8df8;
+    --accent-dim: rgba(91,141,248,0.12);
+    --green: #3ecf8e;
+    --yellow: #f5c842;
+    --orange: #f59642;
+    --red: #f56b6b;
+    --yellow-hl: rgba(245,200,66,0.18);
+    --orange-hl: rgba(245,150,66,0.18);
+    --nav-w: 220px;
+    --font-body: 'Georgia', 'Noto Serif TC', serif;
+    --font-mono: 'Courier New', monospace;
+    --font-ui: system-ui, -apple-system, sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.75;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--nav-w);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 32px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 100;
+  }
+
+  .nav-logo {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  nav a {
+    display: block;
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--text);
+    background: var(--accent-dim);
+  }
+
+  nav a.nav-section {
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 8px;
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Main ── */
+  main {
+    margin-left: var(--nav-w);
+    flex: 1;
+    max-width: 860px;
+    padding: 48px 56px 80px;
+  }
+
+  /* ── Header ── */
+  .report-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+
+  .report-meta {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .report-title {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: var(--font-ui);
+    color: var(--text);
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+
+  /* ── Completion Badge + Bar ── */
+  .completion-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-green { background: rgba(62,207,142,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(245,200,66,0.15); color: var(--yellow); }
+  .badge-red { background: rgba(245,107,107,0.15); color: var(--red); }
+
+  .progress-wrap {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .progress-green { background: var(--green); }
+  .progress-yellow { background: var(--yellow); }
+  .progress-red { background: var(--red); }
+
+  .progress-label {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .pending-count {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Sections ── */
+  section {
+    margin-bottom: 56px;
+    scroll-margin-top: 32px;
+  }
+
+  .section-label {
+    font-family: var(--font-ui);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-family: var(--font-ui);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 28px 0 12px;
+  }
+
+  p { margin-bottom: 12px; color: var(--text); }
+
+  ul, ol {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+  li { margin-bottom: 6px; }
+
+  /* ── Story Cards ── */
+  .story-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+
+  .story-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .priority-badge {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .p0 { background: rgba(245,107,107,0.2); color: var(--red); }
+  .p1 { background: rgba(245,200,66,0.2); color: var(--yellow); }
+  .p2 { background: rgba(91,141,248,0.2); color: var(--accent); }
+
+  .story-title {
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .story-body {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 12px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+
+  .ac-label {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .ac-item {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin-bottom: 4px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-ui);
+    font-size: 13px;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* ── Highlight marks ── */
+  .hl-yellow {
+    background: var(--yellow-hl);
+    color: var(--yellow);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .hl-orange {
+    background: var(--orange-hl);
+    color: var(--orange);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* ── Pending section ── */
+  .pending-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .pending-num {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 20px;
+    padding-top: 2px;
+  }
+
+  .pending-content { flex: 1; }
+
+  .pending-text {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .pending-source {
+    font-family: var(--font-ui);
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  /* ── Empty state ── */
+  .empty {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 16px 0;
+  }
+
+  /* ── Print / PDF ── */
+  @media print {
+    nav { display: none; }
+    main { margin-left: 0; padding: 24px 32px; }
+    .story-card, .pending-item { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar Navigation ── -->
+<nav>
+  <div class="nav-logo">PRD Report</div>
+  <a href="#prd" class="nav-section">PRD 摘要</a>
+  <a href="#stories" class="nav-section">User Stories</a>
+  <a href="#metrics" class="nav-section">Metrics</a>
+  <a href="#questions" class="nav-section">開放問題</a>
+  <a href="#pending" class="nav-section">待確認項目</a>
+</nav>
+
+<!-- ── Main Content ── -->
+<main>
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="report-meta">產品規劃報告 · {{DATE}}</div>
+    <div class="report-title">{{FEATURE_NAME}}</div>
+    <div class="completion-row">
+      <span class="badge {{BADGE_CLASS}}">{{COMPLETION_LABEL}}</span>
+      <div class="progress-wrap">
+        <div class="progress-bar {{PROGRESS_CLASS}}" style="width: {{COMPLETION_PCT}}%"></div>
+      </div>
+      <span class="progress-label">{{COMPLETION_PCT}}%</span>
+      <span class="pending-count">[待確認] {{PENDING_COUNT}} 個</span>
+    </div>
+  </div>
+
+  <!-- Section 1: PRD 摘要 -->
+  <section id="prd">
+    <div class="section-label">Section 01</div>
+    <h2>PRD 摘要</h2>
+
+    <h3>背景與問題</h3>
+    <p>{{PRD_BACKGROUND}}</p>
+
+    <h3>產品目標</h3>
+    <ul>
+      {{PRD_GOALS}}
+    </ul>
+
+    <h3>不在本次範圍</h3>
+    <ul>
+      {{PRD_OUT_OF_SCOPE}}
+    </ul>
+  </section>
+
+  <!-- Section 2: User Stories -->
+  <section id="stories">
+    <div class="section-label">Section 02</div>
+    <h2>User Story 清單</h2>
+
+    <h3>P0 — MVP 必須有</h3>
+    {{USER_STORIES_P0}}
+
+    <h3>P1 — 第二期</h3>
+    {{USER_STORIES_P1}}
+  </section>
+
+  <!-- Section 3: Metrics -->
+  <section id="metrics">
+    <div class="section-label">Section 03</div>
+    <h2>Metrics 表格</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>指標名稱</th>
+            <th>分子</th>
+            <th>分母</th>
+            <th>時間窗口</th>
+            <th>目標值</th>
+            <th>追蹤方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{METRICS_ROWS}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 4: 開放問題 -->
+  <section id="questions">
+    <div class="section-label">Section 04</div>
+    <h2>開放問題</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>問題</th>
+            <th>負責人</th>
+            <th>截止日</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{OPEN_QUESTIONS_ROWS}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 5: 待確認項目 -->
+  <section id="pending">
+    <div class="section-label">Section 05</div>
+    <h2>待確認項目</h2>
+    {{PENDING_ITEMS}}
+  </section>
+
+</main>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
