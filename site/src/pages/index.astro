@@ -69,6 +69,30 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
       </div>
     ) : (
       <>
+        <div class="search-bar">
+          <div class="search-input-wrap">
+            <span class="search-input-icon" aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              id="skill-search"
+              class="search-input"
+              placeholder="搜尋 skill 名稱、描述或 tag…"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="搜尋 skill"
+            />
+          </div>
+          <button
+            type="button"
+            id="clear-filters"
+            class="btn-clear-filters"
+            hidden
+            aria-label="清除搜尋與所有篩選"
+          >
+            Clear all
+          </button>
+        </div>
+
         <div class="filter-bar" role="tablist" aria-label="Filter by category">
           <button
             type="button"
@@ -101,7 +125,13 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
                 : skill.description;
 
             return (
-              <li class="skill-card" data-category={skill.category}>
+              <li
+                class="skill-card"
+                data-category={skill.category}
+                data-name={skill.name.toLowerCase()}
+                data-tags={(skill.tags || []).join(' ').toLowerCase()}
+                data-search-text={skill.description.toLowerCase()}
+              >
                 <h2 class="skill-card__title">
                   <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
                 </h2>
@@ -130,6 +160,11 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
             );
           })}
         </ul>
+
+        <div id="empty-result" class="empty-result" hidden>
+          <p>沒找到符合 "<span id="empty-result-query"></span>" 的 skill。</p>
+          <p class="empty-result__hint">試試其他關鍵字，或 <button type="button" id="empty-result-clear" class="link-button">瀏覽全部</button>。</p>
+        </div>
       </>
     )}
 
@@ -187,28 +222,121 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
 
 <script>
   // 篩選邏輯：純 vanilla，無框架依賴
+  // 行為規格：
+  //   - filter 多選：點分類 = toggle、點 All = 清空所有分類選擇
+  //   - search：搜 name + description + tags，即時過濾
+  //   - filter Set 與 search query 是 AND 關係（同時收窄）
+  //   - 結果為 0 顯示 empty-result，Clear all 在「filter 有選 或 search 有字」時顯示
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
   const cards = document.querySelectorAll<HTMLElement>('.skill-card');
+  const searchInput = document.getElementById('skill-search') as HTMLInputElement | null;
+  const clearBtn = document.getElementById('clear-filters') as HTMLButtonElement | null;
+  const emptyResult = document.getElementById('empty-result');
+  const emptyResultQuery = document.getElementById('empty-result-query');
+  const emptyResultClear = document.getElementById('empty-result-clear') as HTMLButtonElement | null;
+  const skillList = document.getElementById('skill-list');
 
+  // state
+  const activeFilters = new Set<string>(); // 空 Set = All（不過濾分類）
+  let searchQuery = '';
+
+  function applyFilters(): void {
+    const q = searchQuery.trim().toLowerCase();
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const cat = card.dataset.category || '';
+      const name = card.dataset.name || '';
+      const tags = card.dataset.tags || '';
+      const desc = card.dataset.searchText || '';
+
+      // 分類條件：Set 為空 = 全通過；否則須命中 Set 內任一
+      const categoryMatch = activeFilters.size === 0 || activeFilters.has(cat);
+
+      // 搜尋條件：query 為空 = 全通過；否則名稱 / 描述 / tags 任一含 query
+      const searchMatch =
+        q === '' || name.includes(q) || desc.includes(q) || tags.includes(q);
+
+      const visible = categoryMatch && searchMatch;
+      card.dataset.hidden = visible ? 'false' : 'true';
+      if (visible) visibleCount++;
+    });
+
+    // empty state
+    if (emptyResult && emptyResultQuery && skillList) {
+      if (visibleCount === 0) {
+        emptyResultQuery.textContent = q !== '' ? q : '(目前篩選條件)';
+        emptyResult.hidden = false;
+        skillList.style.display = 'none';
+      } else {
+        emptyResult.hidden = true;
+        skillList.style.display = '';
+      }
+    }
+
+    // Clear all 按鈕顯示條件
+    if (clearBtn) {
+      const hasFilter = activeFilters.size > 0;
+      const hasQuery = q !== '';
+      clearBtn.hidden = !(hasFilter || hasQuery);
+    }
+
+    // filter button 的 active 狀態
+    filterBtns.forEach((b) => {
+      const f = b.dataset.filter || '';
+      const isActive =
+        (f === 'all' && activeFilters.size === 0) ||
+        (f !== 'all' && activeFilters.has(f));
+      b.classList.toggle('is-active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
+  // filter buttons
   filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const filter = btn.dataset.filter;
       if (!filter) return;
 
-      filterBtns.forEach((b) => {
-        b.classList.remove('is-active');
-        b.setAttribute('aria-selected', 'false');
-      });
-      btn.classList.add('is-active');
-      btn.setAttribute('aria-selected', 'true');
-
-      cards.forEach((card) => {
-        if (filter === 'all' || card.dataset.category === filter) {
-          card.dataset.hidden = 'false';
+      if (filter === 'all') {
+        // All 是「清空 filter」的捷徑
+        activeFilters.clear();
+      } else {
+        // toggle:已選的取消、未選的加入
+        if (activeFilters.has(filter)) {
+          activeFilters.delete(filter);
         } else {
-          card.dataset.hidden = 'true';
+          activeFilters.add(filter);
         }
-      });
+      }
+
+      applyFilters();
     });
   });
+
+  // search input
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value;
+      applyFilters();
+    });
+  }
+
+  // clear all
+  function resetAll(): void {
+    activeFilters.clear();
+    searchQuery = '';
+    if (searchInput) searchInput.value = '';
+    applyFilters();
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', resetAll);
+  }
+  if (emptyResultClear) {
+    emptyResultClear.addEventListener('click', resetAll);
+  }
+
+  // 初始化:套用一次,確保 All 在 active 狀態、Clear all 隱藏
+  applyFilters();
 </script>
