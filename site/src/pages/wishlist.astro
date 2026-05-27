@@ -1,0 +1,525 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// GAS Web App URL — 部署後填入
+const GAS_URL = ''; // ← 在這裡貼你的 GAS deployment URL
+---
+
+<Layout title="Wishlist" description="社群投票決定下一個要做的 skill">
+  <div class="container container-prose">
+    <header class="detail-header">
+      <div class="hero__kicker">Community wishlist</div>
+      <h1 class="detail-title">Skill Wishlist</h1>
+      <p class="detail-description">
+        覺得需要什麼 skill?提出來、投上去。每週日 23:59 結算,Top 3 進入排程,
+        會出現在首頁的「準備中」清單。
+      </p>
+      <div class="hero__meta" id="week-info">載入中…</div>
+    </header>
+
+    <nav class="filter-bar" role="tablist" aria-label="Wishlist tabs">
+      <button type="button" class="filter-btn is-active" data-tab="vote" role="tab" aria-selected="true">
+        投票
+      </button>
+      <button type="button" class="filter-btn" data-tab="propose" role="tab" aria-selected="false">
+        提案
+      </button>
+      <button type="button" class="filter-btn" data-tab="results" role="tab" aria-selected="false">
+        歷史結果
+      </button>
+    </nav>
+
+    <!-- ============== 投票 tab ============== -->
+    <section id="tab-vote" class="wishlist-section">
+      <div id="items-list" class="wishlist-items">
+        <p class="empty">載入中…</p>
+      </div>
+
+      <aside class="wishlist-sidebar">
+        <div class="wishlist-sidebar__group">
+          <div class="wishlist-sidebar__label">準備中 · Scheduled</div>
+          <ul id="sidebar-scheduled" class="wishlist-sidebar__list">
+            <li class="wishlist-sidebar__empty">—</li>
+          </ul>
+        </div>
+        <div class="wishlist-sidebar__group">
+          <div class="wishlist-sidebar__label">已完成 · Shipped</div>
+          <ul id="sidebar-shipped" class="wishlist-sidebar__list">
+            <li class="wishlist-sidebar__empty">—</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ============== 提案 tab ============== -->
+    <section id="tab-propose" class="wishlist-section" hidden>
+      <p class="wishlist-intro">
+        想看到什麼 skill ?提出來讓大家投票。新提案會經過審核才進入投票池。
+      </p>
+      <div class="propose-form">
+        <div class="form-group">
+          <label for="propose-title">Skill 名稱 <span class="form-hint">最多 100 字</span></label>
+          <input type="text" id="propose-title" maxlength="100" placeholder="例:airbnb-comparator" />
+        </div>
+        <div class="form-group">
+          <label for="propose-desc">想解決什麼問題 <span class="form-hint">最多 500 字</span></label>
+          <textarea id="propose-desc" maxlength="500" rows="5" placeholder="說明這個 skill 想做什麼、為什麼有用"></textarea>
+        </div>
+        <button type="button" class="btn-download btn-download--large" id="propose-submit">送出提案</button>
+      </div>
+    </section>
+
+    <!-- ============== 歷史結果 tab ============== -->
+    <section id="tab-results" class="wishlist-section" hidden>
+      <div id="results-list">
+        <p class="empty">載入中…</p>
+      </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</Layout>
+
+<style>
+  .wishlist-section {
+    display: block;
+  }
+  .wishlist-section[hidden] {
+    display: none;
+  }
+
+  .wishlist-items {
+    margin-bottom: var(--space-xl);
+  }
+
+  .wishlist-card {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: var(--space-md) var(--space-lg);
+    margin-bottom: var(--space-sm);
+    transition: border-color 0.15s ease;
+  }
+  .wishlist-card:hover {
+    border-color: var(--color-ink-muted);
+  }
+  .wishlist-card.is-voted {
+    border-color: var(--color-ink);
+    border-left: 3px solid var(--color-ink);
+  }
+  .wishlist-card__body {
+    flex: 1;
+    min-width: 0;
+  }
+  .wishlist-card__title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+  }
+  .wishlist-card__desc {
+    font-size: 0.875rem;
+    color: var(--color-ink-muted);
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wishlist-card__votes {
+    text-align: right;
+    min-width: 60px;
+  }
+  .wishlist-card__count {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    display: block;
+    line-height: 1;
+  }
+  .wishlist-card__label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .wishlist-sidebar {
+    background: var(--color-paper-dim);
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: var(--space-lg);
+    margin-top: var(--space-xl);
+  }
+  .wishlist-sidebar__group + .wishlist-sidebar__group {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-line);
+  }
+  .wishlist-sidebar__label {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-ink-faint);
+    margin-bottom: var(--space-sm);
+  }
+  .wishlist-sidebar__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+  }
+  .wishlist-sidebar__list li {
+    padding: 3px 0;
+    color: var(--color-ink);
+  }
+  .wishlist-sidebar__empty {
+    color: var(--color-ink-faint) !important;
+  }
+
+  .wishlist-intro {
+    color: var(--color-ink-muted);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin-bottom: var(--space-lg);
+  }
+  .propose-form {
+    background: var(--color-paper-dim);
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: var(--space-lg);
+  }
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+  .form-group label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-ink);
+    margin-bottom: var(--space-xs);
+  }
+  .form-hint {
+    color: var(--color-ink-faint);
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin-left: 0.5em;
+  }
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    color: var(--color-ink);
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    padding: 0.5rem var(--space-md);
+    transition: border-color 0.15s ease;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-ink);
+  }
+  .form-group textarea {
+    resize: vertical;
+    line-height: 1.55;
+    font-family: var(--font-body);
+  }
+
+  .results-week {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: var(--space-md) var(--space-lg);
+    margin-bottom: var(--space-sm);
+  }
+  .results-week__week {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-ink-faint);
+    margin-bottom: var(--space-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .results-week ol {
+    margin: 0;
+    padding-left: var(--space-lg);
+    font-size: 0.9375rem;
+  }
+  .results-week li {
+    padding: 3px 0;
+  }
+  .results-week .v {
+    font-family: var(--font-mono);
+    color: var(--color-ink-muted);
+    margin-left: 0.5em;
+    font-size: 0.8125rem;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+  .toast.show {
+    opacity: 1;
+  }
+
+  .filter-btn[data-tab].is-active {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border-color: var(--color-ink);
+  }
+
+  @media (max-width: 720px) {
+    .wishlist-card {
+      flex-wrap: wrap;
+    }
+    .wishlist-card__votes {
+      text-align: left;
+      min-width: 0;
+    }
+  }
+</style>
+
+<script define:vars={{ GAS_URL }}>
+  const STORAGE_KEY = 'wishlist_voter_token';
+
+  function getVoterToken() {
+    let token = localStorage.getItem(STORAGE_KEY);
+    if (!token) {
+      token = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(STORAGE_KEY, token);
+    }
+    return token;
+  }
+
+  function fpParams() {
+    return {
+      voter_token: getVoterToken(),
+      ua: navigator.userAgent || '',
+      lang: navigator.language || '',
+      screen: `${screen.width}x${screen.height}x${screen.colorDepth}`
+    };
+  }
+
+  async function apiGet(action, extra = {}) {
+    if (!GAS_URL) {
+      return { ok: false, error: 'gas_not_configured' };
+    }
+    const params = new URLSearchParams({ action, ...extra });
+    try {
+      const resp = await fetch(`${GAS_URL}?${params.toString()}`, { method: 'GET' });
+      return await resp.json();
+    } catch (err) {
+      return { ok: false, error: 'network_error' };
+    }
+  }
+
+  async function apiPost(action, data = {}) {
+    if (!GAS_URL) {
+      toast('系統尚未設定 GAS 連線', 'error');
+      return { ok: false, error: 'gas_not_configured' };
+    }
+    const body = new URLSearchParams({ action, ...fpParams(), ...data });
+    try {
+      const resp = await fetch(GAS_URL, { method: 'POST', body });
+      return await resp.json();
+    } catch (err) {
+      return { ok: false, error: 'network_error' };
+    }
+  }
+
+  function toast(msg, type) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'toast show';
+    if (type === 'error') {
+      el.style.background = 'var(--color-neg, #6b4444)';
+    } else if (type === 'success') {
+      el.style.background = 'var(--color-ink)';
+    } else {
+      el.style.background = 'var(--color-ink)';
+    }
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    );
+  }
+
+  // ===== Tab 切換 =====
+  document.querySelectorAll('.filter-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn[data-tab]').forEach(b => {
+        b.classList.remove('is-active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-selected', 'true');
+      document.querySelectorAll('.wishlist-section').forEach(s => s.hidden = true);
+      const tab = btn.dataset.tab;
+      const section = document.getElementById('tab-' + tab);
+      if (section) section.hidden = false;
+      if (tab === 'results') loadResults();
+    });
+  });
+
+  // ===== 投票頁 =====
+  let myVoteThisWeek = null;
+  let currentWeek = null;
+
+  async function loadItems() {
+    const [data, me] = await Promise.all([
+      apiGet('items'),
+      apiGet('me', { voter_token: getVoterToken() })
+    ]);
+
+    const list = document.getElementById('items-list');
+    const weekInfo = document.getElementById('week-info');
+
+    if (!data.ok) {
+      list.innerHTML = `<p class="empty">載入失敗:${data.error}。請確認 GAS_URL 已設定。</p>`;
+      weekInfo.textContent = '無法連線';
+      return;
+    }
+
+    currentWeek = data.week;
+    myVoteThisWeek = me.ok ? me.voted_for : null;
+
+    weekInfo.innerHTML = `
+      <span>本週 <strong>${data.week}</strong></span>
+      <span>${myVoteThisWeek ? '你已投票 ✓' : '你還沒投'}</span>
+    `;
+
+    if (data.items.length === 0) {
+      list.innerHTML = '<p class="empty">本週還沒有可投票的提案。<br/>切到提案 tab 提出第一個!</p>';
+    } else {
+      list.innerHTML = data.items.map(item => `
+        <div class="wishlist-card ${myVoteThisWeek === item.id ? 'is-voted' : ''}">
+          <div class="wishlist-card__body">
+            <div class="wishlist-card__title">${escapeHtml(item.title)}</div>
+            ${item.description ? `<p class="wishlist-card__desc">${escapeHtml(item.description)}</p>` : ''}
+          </div>
+          <div class="wishlist-card__votes">
+            <span class="wishlist-card__count">${item.votes}</span>
+            <span class="wishlist-card__label">votes</span>
+          </div>
+          <button class="btn-download" data-vote-id="${item.id}" ${myVoteThisWeek ? 'disabled' : ''}>
+            ${myVoteThisWeek === item.id ? '已投' : (myVoteThisWeek ? '本週已投' : '投這個')}
+          </button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('button[data-vote-id]').forEach(btn => {
+        btn.addEventListener('click', () => vote(btn.dataset.voteId));
+      });
+    }
+
+    const schedEl = document.getElementById('sidebar-scheduled');
+    const shipEl = document.getElementById('sidebar-shipped');
+    schedEl.innerHTML = data.sidebar.scheduled.length
+      ? data.sidebar.scheduled.map(i => `<li>${escapeHtml(i.title)}</li>`).join('')
+      : '<li class="wishlist-sidebar__empty">—</li>';
+    shipEl.innerHTML = data.sidebar.shipped.length
+      ? data.sidebar.shipped.map(i => `<li>${escapeHtml(i.title)}</li>`).join('')
+      : '<li class="wishlist-sidebar__empty">—</li>';
+  }
+
+  async function vote(ideaId) {
+    if (myVoteThisWeek) {
+      toast('你本週已經投過了', 'error');
+      return;
+    }
+    const result = await apiPost('vote', { idea_id: ideaId });
+    if (result.ok) {
+      toast('投票成功!', 'success');
+      await loadItems();
+    } else {
+      const messages = {
+        already_voted_cookie: '你本週已經投過了',
+        already_voted_fingerprint: '此裝置本週已經投過',
+        rate_limited: '操作太頻繁,請稍候再試',
+        idea_not_available: '此提案目前無法投票'
+      };
+      toast(messages[result.error] || ('投票失敗:' + result.error), 'error');
+    }
+  }
+
+  // ===== 提案頁 =====
+  const proposeBtn = document.getElementById('propose-submit');
+  if (proposeBtn) {
+    proposeBtn.addEventListener('click', async () => {
+      const title = document.getElementById('propose-title').value.trim();
+      const description = document.getElementById('propose-desc').value.trim();
+      if (!title) {
+        toast('請填寫 skill 名稱', 'error');
+        return;
+      }
+      const result = await apiPost('propose', { title, description });
+      if (result.ok) {
+        document.getElementById('propose-title').value = '';
+        document.getElementById('propose-desc').value = '';
+        if (result.status === 'pending') {
+          toast('提案已送出,等候 Vt 審核', 'success');
+        } else {
+          toast('提案已上架,可以投票了', 'success');
+          loadItems();
+        }
+      } else {
+        toast('提案失敗:' + result.error, 'error');
+      }
+    });
+  }
+
+  // ===== 歷史結果頁 =====
+  async function loadResults() {
+    const list = document.getElementById('results-list');
+    const data = await apiGet('results');
+    if (!data.ok) {
+      list.innerHTML = `<p class="empty">載入失敗</p>`;
+      return;
+    }
+    const weeks = Object.keys(data.history || {}).sort().reverse();
+    if (weeks.length === 0) {
+      list.innerHTML = '<p class="empty">還沒有歷史結果</p>';
+      return;
+    }
+    list.innerHTML = weeks.map(w => `
+      <div class="results-week">
+        <div class="results-week__week">${w}</div>
+        <ol>
+          ${data.history[w].sort((a, b) => a.rank - b.rank).map(item =>
+            `<li>${escapeHtml(item.title)}<span class="v">${item.votes} votes</span></li>`
+          ).join('')}
+        </ol>
+      </div>
+    `).join('');
+  }
+
+  // 啟動
+  loadItems();
+</script>
