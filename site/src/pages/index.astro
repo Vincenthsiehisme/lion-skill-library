@@ -112,10 +112,14 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
       <h1 class="hero__title">
         Claude Skills, curated for the team.
       </h1>
-      <p class="hero__sub">
-        每個 Skill 是一組指令 + 參考檔案。安裝後，Claude 會在對應情境自動觸發。
-        下載 zip、放進 <code>~/.claude/skills/</code>、重啟 Claude — 完成。
-      </p>
+<p class="hero__sub">
+  <span class="hero__sub-line">
+    每個 Skill 是一組指令 + 參考檔案。安裝後，Claude 會在對應情境<span class="nowrap">自動觸發</span>。
+  </span>
+  <span class="hero__sub-line">
+    下載 zip、放進 <code>~/.claude/skills/</code>、重啟 Claude — 完成。
+  </span>
+</p>
       <p class="hero__install-hint">
         完整教學、Claude Code 安裝、常見問題 → <a href={`${BASE}install`}>安裝教學</a>
       </p>
