@@ -1,6 +1,8 @@
 ---
 name: skill-discovery
 description: Use when the user explicitly asks for external references, Anthropic/GitHub examples, or best practices for Claude/agent skill design, or when internal skill-search/skill-brain has no precedent. Search L1/L2 first; return a screened URL list and handoff bundle only. Do not deep-read, compare, or synthesize sources.
+version: 0.1.0
+category: utility
 ---
 
 # Skill Discovery
@@ -21,14 +23,7 @@ Use this skill when the user asks for any of the following:
 
 Common trigger phrases include:
 
-- 「對外找 reference」
-- 「業界怎麼做」
-- 「Anthropic 官方有沒有」
-- 「GitHub 上找一下」
-- 「anthropics/skills」
-- 「latest best practice」
-- 「外部範例」
-
+- ??憭 reference??- ?平?獐??- ?nthropic 摰????- ?itHub 銝銝銝?- ?nthropics/skills??- ?atest best practice??- ???函?靘?
 ## 2. When not to use
 
 Do not use this skill when the request belongs to another workflow:
@@ -57,7 +52,7 @@ If the route is unclear, default to Route C.
 
 ## 4. Discovery workflow
 
-### Step 1 — Build the search brief
+### Step 1 ??Build the search brief
 
 Infer the following from context. Ask at most one clarification question only when the topic is still too vague to search.
 
@@ -67,25 +62,25 @@ Infer the following from context. Ask at most one clarification question only wh
 
 Record the final brief in the bundle.
 
-### Step 2 — Search by authority tier
+### Step 2 ??Search by authority tier
 
 Search in this order. Do not start from general web. Lightly open or inspect a result only when needed to verify that the URL is real, current, and actually matches the target. Do not perform article-level extraction, framework synthesis, or long summarization inside this skill.
 
 | Tier | Source type | Query pattern | Stop rule |
 |---|---|---|---|
-| L1 | Anthropic official docs, engineering posts, research/news | `[topic] site:docs.claude.com`, `[topic] site:anthropic.com` | Stop after 2–3 strong results. |
+| L1 | Anthropic official docs, engineering posts, research/news | `[topic] site:docs.claude.com`, `[topic] site:anthropic.com` | Stop after 2?? strong results. |
 | L2 | Anthropic-owned GitHub examples | `[topic] site:github.com/anthropics`, `anthropics skills [topic]` | Stop if L1+L2 already have 3 strong results. |
-| L3 | Reputable community sources | `[topic] Simon Willison`, `[topic] Claude skill blog`, `[topic] AI engineering blog` | Add 1–2 contrastive references. |
-| L4 | General web | `[topic] best practices`, `[topic] examples` | Use only when L1–L3 do not produce enough candidates; cap at 2. |
+| L3 | Reputable community sources | `[topic] Simon Willison`, `[topic] Claude skill blog`, `[topic] AI engineering blog` | Add 1?? contrastive references. |
+| L4 | General web | `[topic] best practices`, `[topic] examples` | Use only when L1?3 do not produce enough candidates; cap at 2. |
 
 Selection rules:
 
-- Return 5–10 screened URLs total when useful sources exist.
-- If L1+L2 already contain at least 3 highly relevant results, early-stop with 3–5 URLs rather than filling the list with weaker sources.
+- Return 5??0 screened URLs total when useful sources exist.
+- If L1+L2 already contain at least 3 highly relevant results, early-stop with 3?? URLs rather than filling the list with weaker sources.
 - Use search snippets, titles, dates, source identity, and light verification for triage. Do not deep-read pages in this skill.
 - Exclude Twitter/X threads, Reddit threads, thin Medium/SEO pages, and unrelated keyword matches unless the user explicitly requested social discussion.
 
-### Step 3 — Score and filter
+### Step 3 ??Score and filter
 
 Assign one recommendation level to each retained URL.
 
@@ -95,9 +90,9 @@ Assign one recommendation level to each retained URL.
 | Medium | Useful supporting context. | Partially matches the target or comes from a reputable secondary source. |
 | Low | Optional background only. | Related but indirect, older, or from a lower-authority source. |
 
-Do not list zero-value results. Put only meaningful exclusions in the “Excluded sources” section.
+Do not list zero-value results. Put only meaningful exclusions in the ?xcluded sources??section.
 
-### Step 4 — Produce both deliverables
+### Step 4 ??Produce both deliverables
 
 Always produce both deliverables when the platform allows file writing.
 
@@ -119,17 +114,17 @@ Search terms: <English query terms used>
 
 ### Retained references
 
-#### L1 — Anthropic official
+#### L1 ??Anthropic official
 | Level | URL | One-line reason |
 |---|---|---|
 | High | https://... | ... |
 
-#### L2 — anthropics/skills or Anthropic GitHub
+#### L2 ??anthropics/skills or Anthropic GitHub
 | Level | URL | One-line reason |
 |---|---|---|
 | High | https://... | ... |
 
-#### L3/L4 — Supporting sources
+#### L3/L4 ??Supporting sources
 | Level | URL | One-line reason |
 |---|---|---|
 | Medium | https://... | ... |
@@ -148,15 +143,14 @@ Bundle saved at: `/home/claude/discovery-bundles/discovery-bundle-<topic>.md`
 
 This skill ends after producing the screened list and bundle.
 
-If the user wants follow-up extraction, pass the selected URL(s) to `knowledge-extractor` one at a time. Do not deep-read the URLs inside this skill, even when the user says “all High-rated URLs are fine.”
-
+If the user wants follow-up extraction, pass the selected URL(s) to `knowledge-extractor` one at a time. Do not deep-read the URLs inside this skill, even when the user says ?ll High-rated URLs are fine.??
 ## 7. Quality gates
 
 Before final output, verify:
 
 - The request truly needs external references.
 - The search started from L1/L2 before L3/L4.
-- The final list has 5–10 URLs, or 3–5 URLs when early-stop conditions are met.
+- The final list has 5??0 URLs, or 3?? URLs when early-stop conditions are met.
 - Each retained URL has a level and one-line reason.
 - Weak or excluded sources are not mixed into the recommendation list.
 - The output does not contain a strategic comparison or article-level synthesis.
@@ -176,20 +170,21 @@ Do not summarize full articles, extract frameworks, or synthesize detailed lesso
 
 If the user asks to compare many cases and derive a strategy, redirect to `strategy-case-report`.
 
-### G4. Over-triggering on generic “find a template” requests
+### G4. Over-triggering on generic ?ind a template??requests
 
 If the user did not specify external sources, route to `skill-search` first.
 
 ### G5. Searching in Chinese by default
 
-Translate the user’s intent into English search terms unless the user explicitly wants Chinese sources.
+Translate the user? intent into English search terms unless the user explicitly wants Chinese sources.
 
 ### G6. Claiming a save path without verifying it
 
-Use `/home/claude/discovery-bundles/` as the primary output path in Claude runtime environments. Before claiming the bundle was saved, ensure the directory exists or can be created. If `/home/claude` is unavailable, fall back to the platform’s configured artifact directory or `./discovery-bundles/`. If no writable path exists, render the bundle inline and state that file saving was unavailable.
+Use `/home/claude/discovery-bundles/` as the primary output path in Claude runtime environments. Before claiming the bundle was saved, ensure the directory exists or can be created. If `/home/claude` is unavailable, fall back to the platform? configured artifact directory or `./discovery-bundles/`. If no writable path exists, render the bundle inline and state that file saving was unavailable.
 
 ## Reference files
 
 - Search mechanics: `references/search-mechanics.md`
 - Bundle template: `references/bundle-template.md`
 - Trigger test cases: `references/eval-cases.md`
+

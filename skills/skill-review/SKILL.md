@@ -1,225 +1,172 @@
 ---
 name: skill-review
 description: |
-  Skill 結構審查顧問。當使用者已寫好或修改 skill、需要 8-dim rubric 評分、想知道 skill 為何不觸發、輸出不穩定、或想跨比對既有 skill 庫找衝突時觸發。執行 (1) 機械檢查（行數、frontmatter、Gotchas）、(2) 8 維度語意審查、(3) 跨 skill 觸發詞衝突偵測，輸出結構化評審報告與改動建議。
+  Skill 蝯?撖拇憿批??雿輻?歇撖怠末?耨??skill??閬?8-dim rubric 閰???仿? skill ?箔?銝孛?潦撓?箔?蝛拙????唾楊瘥??Ｘ? skill 摨急銵??孛?潦銵?(1) 璈１瑼Ｘ嚗??詻rontmatter?otchas嚗?2) 8 蝬剖漲隤?撖拇??3) 頝?skill 閫貊閰?蝒皜穿?頛詨蝯???撖拙???孵?撱箄降??
+  閫貊?摮?撖?skill?eview skill?kill 閰??kill ?交炎??skill 撖怠?撠??隞暻?skill 銝孛?潦kill 頛詨銝帘?kill 頝狐?楊 skill 銵??udit skill??
+  DO NOT trigger for: 閬???skill 瑽嚗 skill-brain嚗 skill 蝭?嚗 skill-search嚗?蝑神 SKILL.md嚗 skill-create嚗?斗批祟?交?敹菔身閮???critical-reviewer嚗?臬祟 PRD/閬??漸?舫撘?歹??神?Ｗ? PRD嚗 prd-writer嚗?---
 
-  觸發關鍵字：審 skill、review skill、skill 評分、skill 健檢、這個 skill 寫得對嗎、為什麼 skill 不觸發、skill 輸出不穩、skill 跟誰撞、跨 skill 衝突、audit skill。
+# Skill Review ??Skill 蝯?撖拇憿批?
 
-  DO NOT trigger for: 規劃新 skill 構想（用 skill-brain）、找 skill 範例（用 skill-search）、動筆寫 SKILL.md（用 skill-create）、批判性審查概念設計（用 critical-reviewer，那是審 PRD/規劃的麥肯錫式批判）、寫產品 PRD（用 prd-writer）。
+摰?嚗kill ??望???*撽?挾**?? create ?Ｗ??skill 頝?璇唳炎??+ 隤?撖拇 + 頝?skill 銵??菜葫嚗?箏?瑁???遣霅啜?
+銝?嚗?閬? skill嚗rain嚗?撖?skill嚗reate嚗??孵璁艙閮剛?嚗ritical-reviewer嚗?
+version: 0.1.0
+category: review
 ---
 
-# Skill Review — Skill 結構審查顧問
+## Step 0嚗霈撖拇??
 
-定位：skill 生命週期的**驗收階段**。對 create 產出的 skill 跑機械檢查 + 語意審查 + 跨 skill 衝突偵測，產出可執行的改動建議。
-
-不做：不規劃 skill（brain）、不寫 skill（create）、不批判概念設計（critical-reviewer）。
-
----
-
-## Step 0：判讀審查情境
-
-每次進入 review，**先判讀使用者要哪一種審查**：
-
-| 情境 | 判讀訊號 | 流程 |
+瘥活?脣 review嚗?*?霈雿輻???芯?蝔桀祟??*嚗?
+| ?? | ?方?閮? | 瘚? |
 |---|---|---|
-| **A. 全面審查** | 「review my skill」「全面審查」「健檢」 | 跑全部 8 個 dim + validate + conflicts，輸出完整報告 |
-| **B. 特定問題診斷** | 「為什麼不觸發」「輸出不穩」「token 太多」 | 只讀對應 dim 檔（見下方對照表），快速給診斷 |
-| **C. 跨 skill 衝突檢查** | 「會不會跟 XX 撞」「跨 skill 衝突」「觸發詞重疊」 | 只跑 conflicts 腳本，不跑 dim rubric |
+| **A. ?券撖拇** | ?eview my skill??Ｗ祟?乓瑼Ｕ?| 頝??8 ??dim + validate + conflicts嚗撓?箏??游??|
+| **B. ?孵???閮箸** | ?隞暻潔?閫貊?撓?箔?蝛押oken 憭芸???| ?芾?撠? dim 瑼?閬??孵??扯”嚗?敹恍策閮箸 |
+| **C. 頝?skill 銵?瑼Ｘ** | ??銝?頝?XX ?楊 skill 銵??孛?潸?????| ?芾? conflicts ?單嚗?頝?dim rubric |
 
-**情境 B 對照表**（只讀需要的 dim 檔，省 context）：
+**?? B 撠銵?*嚗霈?閬? dim 瑼???context嚗?
 
-| 使用者問題 | 讀取的 dim 檔 |
+| 雿輻??憿?| 霈?? dim 瑼?|
 |---|---|
-| 不觸發 | `dim-1-description.md` |
-| description 被平台拒收 / 超 1024 byte | `dim-1-description.md`(Hard Limits 段) |
-| 輸出品質不穩定 | `dim-2-gotchas.md` + `dim-4-railroading.md` |
-| 指令結構混亂 | `dim-3-progressive-disclosure.md` + `dim-4-railroading.md` |
-| 狀態/資料遺失 | `dim-5-setup-config.md` + `dim-7-memory.md` |
-| token 消耗異常 / 存在合理性疑慮 | `dim-8-context-efficiency.md` |
-| 全面審查 | 8 個 dim 檔全讀 |
+| 銝孛??| `dim-1-description.md` |
+| description 鋡怠像?唳???/ 頞?1024 byte | `dim-1-description.md`(Hard Limits 畾? |
+| 頛詨?釭銝帘摰?| `dim-2-gotchas.md` + `dim-4-railroading.md` |
+| ?誘蝯?瘛瑚? | `dim-3-progressive-disclosure.md` + `dim-4-railroading.md` |
+| ???鞈??箏仃 | `dim-5-setup-config.md` + `dim-7-memory.md` |
+| token 瘨撣?/ 摮???抒???| `dim-8-context-efficiency.md` |
+| ?券撖拇 | 8 ??dim 瑼霈 |
 
 ---
 
-## 核心流程：三段式審查
+## ?詨?瘚?嚗?畾萄?撖拇
 
-**依 Step 0 判讀的情境執行不同部分**，不必每次都跑完整三段：
+**靘?Step 0 ?方???憓銵????*嚗?敹?甈⊿頝??港?畾蛛?
 
-| Step 0 情境 | 執行範圍 |
+| Step 0 ?? | ?瑁?蝭? |
 |---|---|
-| **A 全面審查** | 全部三段（機械 + 語意 + 推薦） |
-| **B 特定問題診斷** | 第一段機械檢查 + 第二段（只讀對應 dim 檔）+ 第三段推薦改動 |
-| **C 跨衝突檢查** | 只跑第一段的 `check-skill-conflicts.sh`，跳過第二段語意審查 |
+| **A ?券撖拇** | ?券銝挾嚗?璇?+ 隤? + ?刻嚗?|
+| **B ?孵???閮箸** | 蝚砌?畾菜?璇唳炎??+ 蝚砌?畾蛛??芾?撠? dim 瑼?+ 蝚砌?畾菜?行??|
+| **C 頝刻?蝒炎??* | ?芾?蝚砌?畾萇? `check-skill-conflicts.sh`嚗歲?洵鈭挾隤?撖拇 |
 
-### 第一段 — 機械檢查（自動化）
-
-**先跑兩個腳本**取得客觀數據，不靠肉眼數：
-
+### 蝚砌?畾???璈１瑼Ｘ嚗??嚗?
+**???拙??*??摰Ｚ??豢?嚗????潭嚗?
 ```
 ./scripts/validate-skill.sh <skill-dir>
 ./scripts/check-skill-conflicts.sh <skill-dir> [skills-base]
 ```
 
-`validate-skill.sh` 檢查:行數、frontmatter、**description ≤ 1024 byte(平台硬限制)**、references 子檔數、Gotchas 條數、觸發詞數量。
-`check-skill-conflicts.sh` 檢查：跟既有 skill 庫的觸發詞重疊（🔴 高 / 🟡 中 / 🟢 低）。
-
-**腳本結果寫進報告**作為「機械檢查」段，不靠 Claude 重做這些工作。
-
-### 第二段 — 語意審查（8 維度 rubric）
-
-依 Step 0 判讀的情境，讀取需要的 dim 檔（見對照表）。每個 dim 的評分標準在 `references/dims/dim-N-*.md`。
-
-| # | Dimension | 評分重點 |
+`validate-skill.sh` 瑼Ｘ:銵?rontmatter??*description ??1024 byte(撟喳蝖祇???**?eferences 摮??詻otchas 璇?孛?潸??賊???`check-skill-conflicts.sh` 瑼Ｘ嚗??Ｘ? skill 摨怎?閫貊閰???? 擃?/ ? 銝?/ ? 雿???
+**?單蝯?撖恍脣??*雿??璇唳炎?乓挾嚗???Claude ????撌乩???
+### 蝚砌?畾???隤?撖拇嚗? 蝬剖漲 rubric嚗?
+靘?Step 0 ?方???憓?霈??閬? dim 瑼?閬??扯”嚗???dim ????皞 `references/dims/dim-N-*.md`??
+| # | Dimension | 閰??? |
 |---|---|---|
-| 1 | **Description / Trigger** | 為模型而寫、含 trigger 詞、夠 pushy、與其他 skill 區隔 |
-| 2 | **Gotchas Section** | 真實失敗點、結構化（症狀/做法/為什麼） |
-| 3 | **Progressive Disclosure** | 有目錄結構、不單檔倒入 |
-| 4 | **Railroading** | 給意圖+彈性、不過度規定步驟 |
-| 5 | **Setup & Config** | 首次執行優雅處理（N/A 可跳） |
-| 6 | **Scripts & Code** | 給 Claude 程式碼複用，不重造輪子（N/A 可跳） |
-| 7 | **Memory / State** | 用 `${CLAUDE_PLUGIN_DATA}` 持久化（N/A 可跳） |
-| 8 | **Context Efficiency** | description 簡潔、SKILL.md 精實、有存在合理性 flag |
+| 1 | **Description / Trigger** | ?箸芋?神? trigger 閰? pushy???嗡? skill ???|
+| 2 | **Gotchas Section** | ?祕憭望?暺?瑽?嚗??/??/?箔?暻潘? |
+| 3 | **Progressive Disclosure** | ???瑽??格?? |
+| 4 | **Railroading** | 蝯行???敶扼??漲閬?甇仿? |
+| 5 | **Setup & Config** | 擐活?瑁??芷???嚗/A ?航歲嚗?|
+| 6 | **Scripts & Code** | 蝯?Claude 蝔?蝣潸??剁?銝??憚摮?N/A ?航歲嚗?|
+| 7 | **Memory / State** | ??`${CLAUDE_PLUGIN_DATA}` ????N/A ?航歲嚗?|
+| 8 | **Context Efficiency** | description 蝪⊥??KILL.md 蝎曉祕??摮????flag |
 
-**N/A 維度從 Overall 分母排除，不要打 1 分拉低總分**。
-
-### 第三段 — 改動建議（推薦但不自動修）
-
-**主動掃出推薦改動點**，但**不自動修改**——保留使用者決策權。
-
-每個推薦改動需含：
+**N/A 蝬剖漲敺?Overall ???嚗?閬? 1 ??雿蜇??*??
+### 蝚砌?畾????孵?撱箄降嚗?虫?銝?耨嚗?
+**銝餃???刻?孵?暺?*嚗?**銝?耨??*???蝙?刻捱蝑???
+瘥?行???恬?
 
 ```
-🔴/🟡/🟢 [改動標題]
-位置：<檔案> 第 X 行 / X 段
-現況：[一句話]
-建議：[一句話]
-工作量：X 分鐘
+?/?/? [?孵?璅?]
+雿蔭嚗?瑼?> 蝚?X 銵?/ X 畾??暹?嚗銝?亥店]
+撱箄降嚗銝?亥店]
+撌乩???X ??
 ```
 
-優先級判準：
-- 🔴 高：dim 評分 ≤ 2 / 高度衝突 / 缺必要段落
-- 🟡 中：dim 評分 = 3 / 中度衝突 / 風格不一致
-- 🟢 低：dim 評分 = 4 / 一致性微調 / nice-to-have
+?芸?蝝皞?
+- ? 擃?dim 閰? ??2 / 擃漲銵? / 蝻箏?閬挾??- ? 銝哨?dim 閰? = 3 / 銝剖漲銵? / 憸冽銝???- ? 雿?dim 閰? = 4 / 銝?湔批凝隤?/ nice-to-have
 
 ---
 
-## 輸出規格
+## 頛詨閬
 
-### 完整評審報告格式
+### 摰閰祟?勗??澆?
 
-報告結構詳見 `assets/review-template.md`。核心欄位：
+?勗?蝯?閰唾? `assets/review-template.md`?敹?雿?
 
 ```
 ## Skill Review: <skill-name>
 
 ### Summary
-[1–2 句總體評估]
+[1?? ?亦蜇擃?隡財
 
-### 機械檢查（validate-skill.sh）
-[直接貼腳本輸出，含 ✅/⚠️/❌]
+### 璈１瑼Ｘ嚗alidate-skill.sh嚗?[?湔鞎潸?祈撓?綽???????/?
 
-### 跨 skill 衝突（check-skill-conflicts.sh）
-[直接貼腳本輸出，含 🔴/🟡 重疊清單]
+### 頝?skill 銵?嚗heck-skill-conflicts.sh嚗?[?湔鞎潸?祈撓?綽????/? ??皜]
 
 ### Score Table
-| Dimension | Score (1–5 or N/A) | Notes |
+| Dimension | Score (1?? or N/A) | Notes |
 | ... | ... | ... |
-| **Overall** | **X / Y 維度** | N/A 排除 |
+| **Overall** | **X / Y 蝬剖漲** | N/A ? |
 
-### 🔴 Critical Issues
-### 🟡 Improvements
-### 🟢 What's Working
+### ? Critical Issues
+### ? Improvements
+### ? What's Working
 
-### 推薦改動（優先級 + 工作量估算）
-🔴 ...
-🟡 ...
-🟢 ...
+### ?刻?孵?嚗?? + 撌乩??摯蝞?
+? ...
+? ...
+? ...
 
-### Suggested Rewrites（具體 before/after，給最重要的 1–3 條）
+### Suggested Rewrites嚗擃?before/after嚗策?????1?? 璇?
 ```
 
-### 結尾必有：是否 ship 的判定
-
-最後一段給明確判定：
-
-- **可 ship**（無 🔴 issue、無高度衝突）
-- **修完再 ship**（有 🔴 但都可在短時間內修完）
-- **重新評估**（架構性問題，需回到 skill-brain 重新規劃）
-
+### 蝯偏敹?嚗??ship ?摰?
+?敺?畾萇策?Ⅱ?文?嚗?
+- **??ship**嚗 ? issue?擃漲銵?嚗?- **靽桀???ship**嚗? ? 雿?臬?剜??靽桀?嚗?- **?閰摯**嚗瑽批?憿??? skill-brain ?閬?嚗?
 ---
 
-## 與其他 skill 的銜接
+## ?隞?skill ????
+### 甇???
 
-### 正向銜接
-
-| 上下游 | 動作 |
+| 銝?皜?| ?? |
 |---|---|
-| 上游：`skill-create` | 接收剛產出的 skill 目錄，跑三段審查 |
-| 上游：使用者直接呼叫 | 對既有 skill（含 user 層 27 個既有）做健檢 |
-| 下游：使用者依建議修 | 修完後可再次呼叫 review 驗證 |
-| 下游：`skill-summary` | 使用過程踩坑，由 summary 沉澱 Gotchas |
+| 銝虜嚗skill-create` | ?交??箇? skill ?桅?嚗?銝挾撖拇 |
+| 銝虜嚗蝙?刻?亙??| 撠??skill嚗 user 撅?27 ????瑼?|
+| 銝虜嚗蝙?刻?撱箄降靽?| 靽桀?敺?活?澆 review 撽? |
+| 銝虜嚗skill-summary` | 雿輻??頦拙?嚗 summary 瘝勳 Gotchas |
 
-### Review 內部不處理的事
-
-- 規劃新 skill → 應走 `skill-brain`
-- 找 skill 範例 → 應走 `skill-search`
-- 動筆寫 SKILL.md → 應走 `skill-create`
-- 批判性概念設計審查（PRD/方案）→ 應走 `critical-reviewer`（麥肯錫式批判，不同於結構評分）
-- 直接幫使用者改寫 skill → 不主動修改，**只推薦**改動點，由使用者決定是否動工
-
+### Review ?折銝???鈭?
+- 閬???skill ???粥 `skill-brain`
+- ??skill 蝭? ???粥 `skill-search`
+- ??撖?SKILL.md ???粥 `skill-create`
+- ?孵?扳?敹菔身閮祟?伐?PRD/?寞?嚗? ?粥 `critical-reviewer`嚗漸?舫撘?歹?銝??潛?瑽???
+- ?湔撟思蝙?刻撖?skill ??銝蜓?耨?對?**?芣??*?孵?暺??曹蝙?刻捱摰?血?撌?
 ---
 
-## Common Failure Patterns 快查（按需讀取）
+## Common Failure Patterns 敹急嚗??霈??
 
-審查時若發現符合 5 種致命反模式之一（description 寫給人看、缺 Gotchas、過度 railroading、單檔扁平化、stateful 不用 `${CLAUDE_PLUGIN_DATA}`），直接標 🔴 Critical Issue。
-
-詳細描述、❌ Bad / ✅ Good 對照、對應 dim 分數見 `references/common-failure-patterns.md`。
-
+撖拇??潛蝚血? 5 蝔株?賢?璅∪?銋?嚗escription 撖怎策鈭箇??撩 Gotchas??摨?railroading?瑼?撟喳??tateful 銝 `${CLAUDE_PLUGIN_DATA}`嚗??湔璅?? Critical Issue??
+閰喟敦?膩?? Bad / ??Good 撠????dim ?閬?`references/common-failure-patterns.md`??
 ---
 
 ## Gotchas
 
-### G1：N/A 維度打低分拉低 Overall
-**症狀**：reference skill 不需要 memory，硬打 1 分拉低 Overall。
-**正確做法**：Setup & Config、Scripts & Code、Memory/State 不適用時標記 N/A，從 Overall 分母排除。
-**為什麼**：硬打分會讓報告失真，使用者不知道哪個 dim 是真問題。
-
-### G2：硬擠不存在的問題
-**症狀**：skill 某維度做得很好，review 為了顯得專業還是寫一條改動建議。
-**正確做法**：好就直接說好，列在「What's Working」段。
-**為什麼**：製造假問題會讓 review 失去可信度，使用者不知道該優先改什麼。
-
-### G3：跳過 validate-skill.sh 直接做語意審查
-**症狀**：肉眼數行數、目測 frontmatter 完整性、用直覺評估 Gotchas 條數。
-**正確做法**：先跑 validate（機械檢查 < 10 秒），再做語意審查。腳本結果直接貼進報告。
-**為什麼**：機械檢查靠人工會漏（skill-create 自己審查時就漏報過 7 條 Gotchas），且腳本秒出結果，沒道理跳過。
-
-### G4：忘了跑 check-skill-conflicts.sh
-**症狀**：給出完整評分但沒提跨 skill 衝突，使用者上線後才發現觸發被搶。
-**正確做法**：每次 review **都要**跑衝突檢查（對 `/mnt/skills/user/`），結果寫進報告。
-**為什麼**：使用者已 27+ skill，新 skill 不撞詞是運氣，主動掃才能擋。
-
-### G5：自動改寫使用者的 skill
-**症狀**：發現 description 不夠 pushy，直接動手改寫使用者的 SKILL.md。
-**正確做法**：列出推薦改動（含現況/建議/工作量），但**不主動修改**——使用者按需要再修。
-**為什麼**：保留使用者決策權，避免過度改寫。Review 是顧問不是執行者。
-
-### G6：審別人 skill 時放過空話 Gotchas
-**症狀**：審別人 skill 時看到「請小心邊界」「使用時要謹慎」這種空話 Gotcha。
-**正確做法**：直接指出「Gotcha 是假設性警告而非真實失敗案例」，列為 dim-2 的 🔴 issue。
-**為什麼**：空話 Gotcha 違反 Gotchas 段的設計初衷，也違反 progressive disclosure 規範。
-
+### G1嚗/A 蝬剖漲????雿?Overall
+**??**嚗eference skill 銝?閬?memory嚗′??1 ??雿?Overall??**甇?Ⅱ??**嚗etup & Config?cripts & Code?emory/State 銝?冽?璅? N/A嚗? Overall ?????**?箔?暻?*嚗′?????勗?憭梁?嚗蝙?刻??仿??芸?dim ?舐?????
+### G2嚗′??摮??憿?**??**嚗kill ?雁摨血?敺?憟踝?review ?箔?憿臬?撠平?撖思?璇?遣霅啜?**甇?Ⅱ??**嚗末撠梁?亥牧憟踝???hat's Working?挾??**?箔?暻?*嚗ˊ?????? review 憭勗?臭縑摨佗?雿輻???仿?閰脣?隞暻潦?
+### G3嚗歲??validate-skill.sh ?湔???祟??**??**嚗??潭銵?皜?frontmatter 摰?扼?渲死閰摯 Gotchas 璇??**甇?Ⅱ??**嚗?頝?validate嚗?璇唳炎??< 10 蝘?嚗????祟?乓?祉???亥票?脣??**?箔?暻?*嚗?璇唳炎?仿?鈭箏極??嚗kill-create ?芸楛撖拇?停瞍??7 璇?Gotchas嚗?銝?祉??箇???瘝??歲??
+### G4嚗?鈭? check-skill-conflicts.sh
+**??**嚗策?箏??渲???瘝?頝?skill 銵?嚗蝙?刻?蝺???曇孛?潸◤?嗚?**甇?Ⅱ??**嚗?甈?review **?質?**頝?蝒炎?伐?撠?`/mnt/skills/user/`嚗?蝯?撖恍脣??**?箔?暻?*嚗蝙?刻歇 27+ skill嚗 skill 銝?閰?除嚗蜓?????
+### G5嚗?撖思蝙?刻? skill
+**??**嚗??description 銝? pushy嚗?亙??撖思蝙?刻? SKILL.md??**甇?Ⅱ??**嚗??箸?行???怎瘜?撱箄降/撌乩???嚗?**銝蜓?耨??*?蝙?刻??閬?靽柴?**?箔?暻?*嚗??蝙?刻捱蝑?嚗??摨行撖怒eview ?舫“???臬銵?
+### G6嚗祟?乩犖 skill ??征閰?Gotchas
+**??**嚗祟?乩犖 skill ???啜?撠????蝙?冽?閬牲?車蝛箄店 Gotcha??**甇?Ⅱ??**嚗?交??箝otcha ?臬?閮剜扯郎???祕憭望?獢???? dim-2 ??? issue??**?箔?暻?*嚗征閰?Gotcha ?? Gotchas 畾萇?閮剛??◎嚗??? progressive disclosure 閬???
 ---
 
 ## Reference Files
 
-**評分 rubric**：`references/dims/dim-1-*.md` 至 `dim-8-*.md`（按 Step 0 情境對照表選讀）
+**閰? rubric**嚗references/dims/dim-1-*.md` ??`dim-8-*.md`嚗? Step 0 ??撠銵券霈嚗?
+**?芋撘翰??*嚗references/common-failure-patterns.md`
 
-**反模式快查**：`references/common-failure-patterns.md`
+**Skill ????*嚗references/categories.md`嚗? 蝔?skill 憿?嚗?
+**蝭**嚗assets/review-template.md`嚗?撖拙???穿?
 
-**Skill 分類參考**：`references/categories.md`（9 種 skill 類型）
-
-**範本**：`assets/review-template.md`（評審報告範本）
-
-**腳本**：
-- `scripts/validate-skill.sh` — 機械檢查（行數、frontmatter、references、Gotchas、觸發詞）
-- `scripts/check-skill-conflicts.sh` — 跨 skill 觸發詞衝突偵測
+**?單**嚗?- `scripts/validate-skill.sh` ??璈１瑼Ｘ嚗??詻rontmatter?eferences?otchas?孛?潸?嚗?- `scripts/check-skill-conflicts.sh` ??頝?skill 閫貊閰?蝒皜?
