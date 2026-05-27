@@ -1,9 +1,38 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import catalog from '../data/skills.generated.json';
-import type { SkillMeta, SkillGroup } from '../types';
+import skillsData from '../data/skills.generated.json';
+import type { Catalog, SkillMeta } from '../types';
 
-const CATEGORY_LABELS: Record<string, string> = {
+const catalog = skillsData as Catalog;
+const allSkills: SkillMeta[] = catalog.skills;
+
+// 「新發布」= firstPublished 在最近 30 天
+const NEW_PUBLISH_DAYS = 30;
+// 「新版本」= versionBumpedAt 在最近 30 天 且曾經 bump 過
+const NEW_VERSION_DAYS = 30;
+
+const now = Date.now();
+const newPublishCutoff = now - NEW_PUBLISH_DAYS * 24 * 60 * 60 * 1000;
+const newVersionCutoff = now - NEW_VERSION_DAYS * 24 * 60 * 60 * 1000;
+
+const newSkills = allSkills.filter(
+  (s) => new Date(s.firstPublished).getTime() >= newPublishCutoff
+);
+
+const newVersions = allSkills.filter(
+  (s) =>
+    s.hasBeenVersionBumped &&
+    new Date(s.versionBumpedAt).getTime() >= newVersionCutoff
+);
+
+// 排序:先按 name asc
+const sortedSkills = [...allSkills].sort((a, b) => a.name.localeCompare(b.name));
+
+// 給 client-side 篩選用的所有 category(已使用的)
+const usedCategories = [...new Set(allSkills.map((s) => s.category))].sort();
+
+// category label 對照(跟 schema.ts 同步)
+const categoryZh: Record<string, string> = {
   planning: '規劃',
   writing: '寫作',
   review: '審查',
@@ -12,675 +41,274 @@ const CATEGORY_LABELS: Record<string, string> = {
   utility: '工具',
   domain: '領域',
 };
-
-// ─────────────────────────────────────────────────────────────
-// Group meta · 與 scripts/schema.ts 的 GROUP_META 對齊
-// 修改時兩邊都要改;Astro 不能直接 import .ts script 模組所以這裡複寫
-// ─────────────────────────────────────────────────────────────
-const GROUP_META: Record<
-  SkillGroup,
-  { label: string; blurb: string; order: number }
-> = {
-  'skill-meta': {
-    label: 'Skill 元工具',
-    blurb: '規劃、寫、審、沉澱 skill 本身的工具家族。彼此互相串成一條 lifecycle。',
-    order: 1,
-  },
-  'pm-workflow': {
-    label: 'PM 工作流',
-    blurb: 'PRD、審查、派工、故事拆解。產品經理日常產出的主要工具。',
-    order: 2,
-  },
-  'data-pipeline': {
-    label: '資料 pipeline',
-    blurb: '清整、整形、檢定、解讀、視覺化。從髒 CSV 到可講的洞察。',
-    order: 3,
-  },
-  'lion-schema': {
-    label: '雄獅資料知識',
-    blurb: 'ERP / PCM / CMS / 行銷 / 行程組合器等資料庫 schema 與 API 對照。',
-    order: 4,
-  },
-  'lion-system': {
-    label: '雄獅系統架構',
-    blurb: '團體、訂單、搜尋系統的架構顧問與故障診斷。',
-    order: 5,
-  },
-  'personal-style': {
-    label: '個人風格資產',
-    blurb: '個人偏好、視覺風格、輸出風格的 DNA。',
-    order: 6,
-  },
-  'marketing-seo': {
-    label: '行銷與 SEO',
-    blurb: '雄獅行銷 context、SEO 體檢、價格帶洞察。',
-    order: 7,
-  },
-  specialty: {
-    label: '專項工具',
-    blurb: '不屬於既有 pipeline 但有特定情境用途的單兵 skill。',
-    order: 8,
-  },
-};
-
-const skills = catalog.skills as SkillMeta[];
-
-// 計算每個 category 的數量(保留 category filter,但移到次要)
-const categoryCount: Record<string, number> = {};
-for (const s of skills) {
-  categoryCount[s.category] = (categoryCount[s.category] || 0) + 1;
-}
-const categories = Object.keys(CATEGORY_LABELS).filter((c) => categoryCount[c] > 0);
-
-// ─────────────────────────────────────────────────────────────
-// 按 group 分組;每組內按 name 排序;空 group 不渲染
-// ─────────────────────────────────────────────────────────────
-const skillsByGroup: Record<string, SkillMeta[]> = {};
-for (const s of skills) {
-  const g = s.group || 'specialty';
-  if (!skillsByGroup[g]) skillsByGroup[g] = [];
-  skillsByGroup[g].push(s);
-}
-
-const groupedSections = (Object.keys(skillsByGroup) as SkillGroup[])
-  .filter((g) => skillsByGroup[g].length > 0)
-  .sort((a, b) => (GROUP_META[a]?.order ?? 99) - (GROUP_META[b]?.order ?? 99))
-  .map((g) => ({
-    group: g,
-    meta: GROUP_META[g] ?? { label: g, blurb: '', order: 99 },
-    skills: skillsByGroup[g].sort((a, b) => a.name.localeCompare(b.name)),
-  }));
-
-// ─────────────────────────────────────────────────────────────
-// Pipeline 視覺化候選 group:
-//   group 內 ≥ 3 個 skill 且至少有 1 條 feeds_into 關係 → 渲染 pipeline diagram
-// ─────────────────────────────────────────────────────────────
-function hasPipelineRelations(skills: SkillMeta[]): boolean {
-  if (skills.length < 3) return false;
-  return skills.some((s) => (s.feeds_into?.length ?? 0) > 0);
-}
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toISOString().slice(0, 10);
-}
-
-const totalCount = skills.length;
-const generatedAt = catalog.generatedAt ? formatDate(catalog.generatedAt) : '';
-const BASE = import.meta.env.BASE_URL;
-
-// ─────────────────────────────────────────────────────────────
-// Common tasks: hardcode 的「卡情境」入口
-// 對應到 skill 必須存在於 catalog,否則跳過該 task(避免死連結)
-// 列表覆蓋常見任務 — 不存在的 skill 會自動隱藏
-// ─────────────────────────────────────────────────────────────
-const COMMON_TASKS: Array<{ task: string; skill: string; blurb: string }> = [
-  { task: '我要寫 PRD',              skill: 'prd-writer',         blurb: '結構化問診 + 模糊探索前置階段' },
-  { task: '我要規劃新 skill',         skill: 'skill-brain',        blurb: '釐清 problem + trigger + boundary' },
-  { task: '我要寫 SKILL.md',         skill: 'skill-create',       blurb: '把 intent 組裝成符合規範的 skill' },
-  { task: '我要審 skill',            skill: 'skill-review',       blurb: '8-dim rubric 評分 + 衝突偵測' },
-  { task: '我要找 skill 範例',        skill: 'skill-search',       blurb: '從本機三層 skill 庫萃取模式' },
-  { task: '我要找外部 skill 參考',    skill: 'skill-discovery',    blurb: 'Anthropic / GitHub 等外部範例' },
-  { task: '我要沉澱 skill 踩坑',      skill: 'skill-summary',      blurb: '把錯誤模式變 Gotcha 條目' },
-  { task: '我要審方案 / 找盲點',      skill: 'critical-reviewer',  blurb: '麥肯錫式批判,顧問小組視角' },
-  { task: '我要拆 sprint 任務',       skill: 'task-dispatcher',    blurb: '偵測 Squad 範疇,輸出分工表' },
-  { task: '我要看資料 / 分析 CSV',    skill: 'data-lens-proposer', blurb: '替身分析師,N 種切法擋會議提問' },
-  { task: '我要查雄獅系統',           skill: 'group-system-advisor', blurb: '控制域歸因、改動影響範圍盤點' },
-  { task: '我要結束對話交接',         skill: 'session-handoff',    blurb: '把脈絡濃縮成結構化交接文件' },
-];
-const skillNames = new Set(skills.map((s) => s.name));
-const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
-
-// ─────────────────────────────────────────────────────────────
-// Recent · 兩條時間軸
-// - 新發布:firstPublished 在 14 天內
-// - 新版本:versionBumpedAt 在 14 天內,且不在新發布清單裡(避免雙重出現)
-// 各取最近 5 個。任一邊空就整邊不顯示;兩邊都空整段不顯示。
-// ─────────────────────────────────────────────────────────────
-const RECENT_WINDOW_DAYS = 14;
-const RECENT_LIMIT = 5;
-const now = Date.now();
-const windowMs = RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-
-function withinWindow(iso: string): boolean {
-  if (!iso) return false;
-  const t = new Date(iso).getTime();
-  return Number.isFinite(t) && now - t <= windowMs;
-}
-
-function daysAgo(iso: string): string {
-  const ms = now - new Date(iso).getTime();
-  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
-  if (days <= 0) return '今天';
-  if (days === 1) return '昨天';
-  if (days < 7) return `${days} 天前`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks} 週前`;
-}
-
-const newReleases = skills
-  .filter((s) => withinWindow(s.firstPublished))
-  .sort((a, b) => (a.firstPublished < b.firstPublished ? 1 : -1))
-  .slice(0, RECENT_LIMIT);
-
-const newReleaseNames = new Set(newReleases.map((s) => s.name));
-
-const newVersions = skills
-  .filter(
-    (s) =>
-      withinWindow(s.versionBumpedAt) &&
-      // 排除已在新發布清單的（避免同一個 skill 雙重出現）
-      !newReleaseNames.has(s.name) &&
-      // 排除「versionBumpedAt 等於 firstPublished」的情況
-      // (因為這代表 version 從沒 bump 過,只是初始 commit)
-      s.versionBumpedAt !== s.firstPublished,
-  )
-  .sort((a, b) => (a.versionBumpedAt < b.versionBumpedAt ? 1 : -1))
-  .slice(0, RECENT_LIMIT);
-
-const showRecent = newReleases.length > 0 || newVersions.length > 0;
 ---
 
-<Layout>
-  <div class="container">
-    <section class="hero">
-      <div class="hero__kicker">A reference index for AI workflows</div>
-      <h1 class="hero__title">
-        Claude Skills, curated for the team.
-      </h1>
-<p class="hero__sub">
-  <span class="hero__sub-line">
-    每個 Skill 是一組指令 + 參考檔案。安裝後，Claude 會在對應情境<span class="nowrap">自動觸發</span>。
-  </span>
-  <span class="hero__sub-line">
-    下載 zip、放進 <code>~/.claude/skills/</code>、重啟 Claude — 完成。
-  </span>
-</p>
-      <p class="hero__install-hint">
-        完整教學、Claude Code 安裝、常見問題 → <a href={`${BASE}install`}>安裝教學</a>
+<Layout title="Lion Skill Library">
+  <main class="container">
+    <header class="hero">
+      <h1>Lion Skill Library</h1>
+      <p class="tagline">
+        雄獅旅遊 PM Vt 的 Claude Skill 分發站。
+        共 {allSkills.length} 個 skill。
       </p>
-      <div class="hero__meta">
-        <span><strong>{totalCount}</strong> skills indexed</span>
-        <span>Last build · <strong>{generatedAt}</strong></span>
-        <span>Internal · MIT-licensed</span>
+    </header>
+
+    {newSkills.length > 0 && (
+      <section class="highlight-section">
+        <h2>🆕 新發布</h2>
+        <div class="skill-grid">
+          {newSkills.map((skill) => (
+            <a href={`/skills/${skill.name}/`} class="skill-card">
+              <div class="card-header">
+                <h3>{skill.name}</h3>
+                <span class="badge badge-new">NEW</span>
+              </div>
+              <p class="card-desc">{skill.atGlance.triggerKeywords ?? skill.description.slice(0, 120)}</p>
+              <div class="card-footer">
+                <span class="category-tag">{categoryZh[skill.category] ?? skill.category}</span>
+                <span class="version">v{skill.version}</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {newVersions.length > 0 && (
+      <section class="highlight-section">
+        <h2>⬆️ 新版本</h2>
+        <div class="skill-grid">
+          {newVersions.map((skill) => (
+            <a href={`/skills/${skill.name}/`} class="skill-card">
+              <div class="card-header">
+                <h3>{skill.name}</h3>
+                <span class="badge badge-update">v{skill.version}</span>
+              </div>
+              <p class="card-desc">{skill.atGlance.triggerKeywords ?? skill.description.slice(0, 120)}</p>
+              <div class="card-footer">
+                <span class="category-tag">{categoryZh[skill.category] ?? skill.category}</span>
+                <span class="version">v{skill.version}</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="all-skills">
+      <div class="section-head">
+        <h2>所有 Skill</h2>
+        <div class="filters" id="category-filters">
+          <button class="filter-btn is-active" data-category="all">全部</button>
+          {usedCategories.map((cat) => (
+            <button class="filter-btn" data-category={cat}>
+              {categoryZh[cat] ?? cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div class="skill-grid" id="skill-grid">
+        {sortedSkills.map((skill) => (
+          <a
+            href={`/skills/${skill.name}/`}
+            class="skill-card"
+            data-category={skill.category}
+          >
+            <div class="card-header">
+              <h3>{skill.name}</h3>
+            </div>
+            <p class="card-desc">{skill.atGlance.triggerKeywords ?? skill.description.slice(0, 120)}</p>
+            <div class="card-footer">
+              <span class="category-tag">{categoryZh[skill.category] ?? skill.category}</span>
+              <span class="version">v{skill.version}</span>
+            </div>
+          </a>
+        ))}
       </div>
     </section>
-
-    {totalCount === 0 ? (
-      <div class="empty">
-        <p>目錄目前為空。第一個 Skill 上架後會自動出現在這裡。</p>
-        <p style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.875rem;">
-          maintainer note: push a folder under <code>skills/</code> to populate.
-        </p>
-      </div>
-    ) : (
-      <>
-        <!-- ─────────────────────────────────────────────────────────
-             What is this · 給「完全不懂的人」的著陸區
-             ───────────────────────────────────────────────────────── -->
-        <section class="explainer">
-          <div class="explainer__label">什麼是 Skill？</div>
-          <p class="explainer__body">
-            一組給 Claude 看的指令 + 參考檔案。安裝後，Claude 會在符合條件的對話情境自動觸發，
-            用設計好的方式回應 — 不需要每次對話都重新解釋。
-          </p>
-          <p class="explainer__example">
-            例如裝了 <code>prd-writer</code>，跟 Claude 說「幫我寫一份 PRD」，
-            它會自動跑結構化的問診流程，而不是亂寫一份。
-          </p>
-          <div class="explainer__cta">
-            <a href={`${BASE}about`}>了解更多 →</a>
-            <a href={`${BASE}install`}>安裝教學 →</a>
-          </div>
-        </section>
-
-        <!-- ─────────────────────────────────────────────────────────
-             Common tasks · 給「卡情境的人」的快速入口
-             ───────────────────────────────────────────────────────── -->
-        {visibleTasks.length > 0 && (
-          <section class="tasks">
-            <div class="tasks__header">
-              <h2 class="tasks__title">常見任務</h2>
-              <span class="tasks__hint">不確定要找什麼？從這裡開始</span>
-            </div>
-            <ul class="tasks__grid">
-              {visibleTasks.map((t) => (
-                <li>
-                  <a href={`${BASE}skill/${t.skill}`} class="task-card">
-                    <div class="task-card__task">{t.task}</div>
-                    <div class="task-card__skill"><code>{t.skill}</code></div>
-                    <div class="task-card__blurb">{t.blurb}</div>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <!-- ─────────────────────────────────────────────────────────
-             Recent · 給「回訪的人」的雙線時間軸
-             ───────────────────────────────────────────────────────── -->
-        {showRecent && (
-          <section class="recent">
-            <div class="recent__header">
-              <h2 class="recent__title">最近動態</h2>
-              <span class="recent__hint">{RECENT_WINDOW_DAYS} 天內的變化</span>
-            </div>
-            <div class="recent__cols">
-              {newReleases.length > 0 && (
-                <div class="recent__col">
-                  <div class="recent__col-label">新發布</div>
-                  <ul class="recent__list">
-                    {newReleases.map((s) => (
-                      <li>
-                        <a href={`${BASE}skill/${s.name}`} class="recent-item">
-                          <span class="recent-item__name">{s.name}</span>
-                          <span class="recent-item__meta">
-                            <span class="recent-item__when">{daysAgo(s.firstPublished)}</span>
-                            <span class="recent-item__sep">·</span>
-                            <span class="recent-item__version">v{s.version}</span>
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {newVersions.length > 0 && (
-                <div class="recent__col">
-                  <div class="recent__col-label">新版本</div>
-                  <ul class="recent__list">
-                    {newVersions.map((s) => (
-                      <li>
-                        <a href={`${BASE}skill/${s.name}`} class="recent-item">
-                          <span class="recent-item__name">{s.name}</span>
-                          <span class="recent-item__meta">
-                            <span class="recent-item__when">{daysAgo(s.versionBumpedAt)}</span>
-                            <span class="recent-item__sep">·</span>
-                            <span class="recent-item__version">v{s.version}</span>
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        <!-- ─────────────────────────────────────────────────────────
-             完整目錄(原有結構)
-             ───────────────────────────────────────────────────────── -->
-        <section class="catalog">
-          <div class="catalog__header">
-            <h2 class="catalog__title">完整目錄</h2>
-            <span class="catalog__hint">已知目標時,直接搜尋或篩選</span>
-          </div>
-
-          <div class="search-bar">
-            <div class="search-input-wrap">
-              <span class="search-input-icon" aria-hidden="true">⌕</span>
-              <input
-                type="search"
-                id="skill-search"
-                class="search-input"
-                placeholder="搜尋 skill 名稱、描述或 tag…"
-                autocomplete="off"
-                spellcheck="false"
-                aria-label="搜尋 skill"
-              />
-            </div>
-            <button
-              type="button"
-              id="clear-filters"
-              class="btn-clear-filters"
-              hidden
-              aria-label="清除搜尋與所有篩選"
-            >
-              Clear all
-            </button>
-          </div>
-
-          <div class="filter-bar" role="tablist" aria-label="Filter by category">
-            <button
-              type="button"
-              class="filter-btn is-active"
-              data-filter="all"
-              role="tab"
-              aria-selected="true"
-            >
-              All<span class="filter-btn__count">{totalCount}</span>
-            </button>
-            {categories.map((cat) => (
-              <button
-                type="button"
-                class="filter-btn"
-                data-filter={cat}
-                role="tab"
-                aria-selected="false"
-              >
-                {CATEGORY_LABELS[cat]}<span class="filter-btn__count">{categoryCount[cat]}</span>
-              </button>
-            ))}
-          </div>
-
-          <!-- 分組區塊:預設視圖(沒搜尋/沒選 category 時) -->
-          <div class="grouped-sections" id="grouped-sections">
-            {groupedSections.map(({ group, meta, skills: groupSkills }) => (
-              <section class="group-section" data-group={group}>
-                <header class="group-section__header">
-                  <h3 class="group-section__title">
-                    {meta.label}
-                    <span class="group-section__count">{groupSkills.length}</span>
-                  </h3>
-                  <p class="group-section__blurb">{meta.blurb}</p>
-                </header>
-                <ul class="skill-grid">
-                  {groupSkills.map((skill) => {
-                    const shortDesc =
-                      skill.description.length > 160
-                        ? skill.description.slice(0, 160) + '…'
-                        : skill.description;
-                    const hint = skill.atGlance?.doNotFirstHint;
-
-                    return (
-                      <li
-                        class="skill-card"
-                        data-category={skill.category}
-                        data-group={skill.group}
-                        data-name={skill.name.toLowerCase()}
-                        data-tags={(skill.tags || []).join(' ').toLowerCase()}
-                        data-search-text={skill.description.toLowerCase()}
-                      >
-                        <h2 class="skill-card__title">
-                          <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
-                        </h2>
-                        <p class="skill-card__desc">{shortDesc}</p>
-                        {hint && (
-                          <p class="skill-card__hint">
-                            <span class="skill-card__hint-label">不是這個?</span> {hint}
-                          </p>
-                        )}
-                        <div class="skill-card__meta">
-                          <span class={`cat-badge cat-${skill.category}`}>
-                            {CATEGORY_LABELS[skill.category]}
-                          </span>
-                          <span>v{skill.version}</span>
-                          <span>{formatDate(skill.lastModified)}</span>
-                        </div>
-                        <div class="skill-card__actions">
-                          <span class="skill-card__version">
-                            {skill.tags && skill.tags.length > 0 ? skill.tags.slice(0, 2).join(' / ') : ''}
-                          </span>
-                          <a
-                            href={`${BASE}downloads/${skill.zipFilename}`}
-                            class="btn-download"
-                            download
-                          >
-                            ↓ Download
-                            <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
-                          </a>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
-          </div>
-
-          <!-- 搜尋啟動時的平鋪視圖(預設隱藏,JS 切換) -->
-          <ul class="skill-grid skill-grid--flat" id="skill-list-flat" hidden>
-            {skills.map((skill) => {
-              const shortDesc =
-                skill.description.length > 160
-                  ? skill.description.slice(0, 160) + '…'
-                  : skill.description;
-              const hint = skill.atGlance?.doNotFirstHint;
-
-              return (
-                <li
-                  class="skill-card"
-                  data-category={skill.category}
-                  data-group={skill.group}
-                  data-name={skill.name.toLowerCase()}
-                  data-tags={(skill.tags || []).join(' ').toLowerCase()}
-                  data-search-text={skill.description.toLowerCase()}
-                >
-                  <h2 class="skill-card__title">
-                    <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
-                  </h2>
-                  <p class="skill-card__desc">{shortDesc}</p>
-                  {hint && (
-                    <p class="skill-card__hint">
-                      <span class="skill-card__hint-label">不是這個?</span> {hint}
-                    </p>
-                  )}
-                  <div class="skill-card__meta">
-                    <span class={`cat-badge cat-${skill.category}`}>
-                      {CATEGORY_LABELS[skill.category]}
-                    </span>
-                    <span>v{skill.version}</span>
-                    <span>{formatDate(skill.lastModified)}</span>
-                  </div>
-                  <div class="skill-card__actions">
-                    <span class="skill-card__version">
-                      {skill.tags && skill.tags.length > 0 ? skill.tags.slice(0, 2).join(' / ') : ''}
-                    </span>
-                    <a
-                      href={`${BASE}downloads/${skill.zipFilename}`}
-                      class="btn-download"
-                      download
-                    >
-                      ↓ Download
-                      <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
-                    </a>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div id="empty-result" class="empty-result" hidden>
-            <p>沒找到符合 "<span id="empty-result-query"></span>" 的 skill。</p>
-            <p class="empty-result__hint">
-              <span id="empty-result-suggestions"></span>
-              試試其他關鍵字,或 <button type="button" id="empty-result-clear" class="link-button">瀏覽全部</button>。
-            </p>
-          </div>
-        </section>
-      </>
-    )}
-  </div>
+  </main>
 </Layout>
 
+<style>
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .hero h1 {
+    margin: 0 0 0.5rem;
+    font-size: 2.5rem;
+  }
+
+  .tagline {
+    color: var(--text-muted, #666);
+    margin: 0;
+  }
+
+  .highlight-section {
+    margin-bottom: 3rem;
+  }
+
+  .highlight-section h2,
+  .all-skills h2 {
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border, #ccc);
+    background: transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text, #333);
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover {
+    background: var(--bg-hover, #f5f5f5);
+  }
+
+  .filter-btn.is-active {
+    background: var(--accent, #2563eb);
+    color: white;
+    border-color: var(--accent, #2563eb);
+  }
+
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .skill-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+    border: 1px solid var(--border, #e5e5e5);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--card-bg, #fff);
+    transition: all 0.15s;
+  }
+
+  .skill-card:hover {
+    border-color: var(--accent, #2563eb);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .skill-card[hidden] {
+    display: none;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .card-desc {
+    flex: 1;
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted, #666);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+  }
+
+  .category-tag {
+    padding: 0.2rem 0.6rem;
+    background: var(--tag-bg, #f0f0f0);
+    border-radius: 4px;
+    color: var(--text-muted, #666);
+  }
+
+  .version {
+    color: var(--text-muted, #888);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .badge {
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge-new {
+    background: #10b981;
+    color: white;
+  }
+
+  .badge-update {
+    background: #f59e0b;
+    color: white;
+  }
+</style>
+
 <script>
-  // ─────────────────────────────────────────────────────────────
-  // 篩選邏輯:純 vanilla,無框架依賴
-  // 行為規格:
-  //   - 預設視圖 = 分組區塊(grouped-sections);搜尋或選分類時切到平鋪(skill-list-flat)
-  //   - filter 多選:點分類 = toggle、點 All = 清空所有分類選擇
-  //   - search:搜 name + description + tags,即時過濾
-  //   - filter Set 與 search query 是 AND 關係(同時收窄)
-  //   - 結果為 0 顯示 empty-result + 推薦近似 skill(基於 levenshtein-ish 距離)
-  // ─────────────────────────────────────────────────────────────
-  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const searchInput = document.getElementById('skill-search') as HTMLInputElement | null;
-  const clearBtn = document.getElementById('clear-filters') as HTMLButtonElement | null;
-  const emptyResult = document.getElementById('empty-result');
-  const emptyResultQuery = document.getElementById('empty-result-query');
-  const emptyResultClear = document.getElementById('empty-result-clear') as HTMLButtonElement | null;
-  const emptyResultSuggestions = document.getElementById('empty-result-suggestions');
-  const groupedSections = document.getElementById('grouped-sections');
-  const flatList = document.getElementById('skill-list-flat');
-
-  // state
-  const activeFilters = new Set<string>(); // 空 Set = All(不過濾分類)
-  let searchQuery = '';
-
-  /**
-   * 計算 query 與某張卡片所有可搜尋文字的「最佳子串距離」。
-   * 越小越像。完全 substring match 回 0;否則用 query 的每個字符是否出現作粗略命中數。
-   */
-  function suggestionScore(query: string, name: string, desc: string, tags: string): number {
-    if (!query) return Infinity;
-    const haystack = (name + ' ' + desc + ' ' + tags).toLowerCase();
-    const q = query.toLowerCase();
-    if (haystack.includes(q)) return 0;
-    // 拆 query 字元,逐個檢查是否在 haystack 出現,沒命中的計分(越多沒命中分數越高)
-    let miss = 0;
-    for (const ch of q) {
-      if (!haystack.includes(ch)) miss++;
-    }
-    return miss;
-  }
-
-  /**
-   * 切換預設分組視圖 vs. 搜尋平鋪視圖。
-   * 進入「搜尋 / 分類過濾」狀態時切到平鋪,空狀態時切回分組。
-   */
-  function setView(mode: 'grouped' | 'flat'): void {
-    if (mode === 'grouped') {
-      if (groupedSections) groupedSections.hidden = false;
-      if (flatList) flatList.hidden = true;
-    } else {
-      if (groupedSections) groupedSections.hidden = true;
-      if (flatList) flatList.hidden = false;
-    }
-  }
-
-  function applyFilters(): void {
-    const q = searchQuery.trim().toLowerCase();
-    const hasFilter = activeFilters.size > 0;
-    const hasQuery = q !== '';
-    const inSearchMode = hasFilter || hasQuery;
-
-    // 視圖切換
-    setView(inSearchMode ? 'flat' : 'grouped');
-
-    // 過濾:預設視圖時所有卡片顯示;搜尋模式只過濾平鋪那組
-    const targetCards = inSearchMode
-      ? document.querySelectorAll<HTMLElement>('#skill-list-flat .skill-card')
-      : document.querySelectorAll<HTMLElement>('#grouped-sections .skill-card');
-
-    let visibleCount = 0;
-    targetCards.forEach((card) => {
-      const cat = card.dataset.category || '';
-      const name = card.dataset.name || '';
-      const tags = card.dataset.tags || '';
-      const desc = card.dataset.searchText || '';
-
-      const categoryMatch = activeFilters.size === 0 || activeFilters.has(cat);
-      const searchMatch =
-        q === '' || name.includes(q) || desc.includes(q) || tags.includes(q);
-
-      const visible = categoryMatch && searchMatch;
-      card.dataset.hidden = visible ? 'false' : 'true';
-      if (visible) visibleCount++;
-    });
-
-    // empty result + 推薦
-    if (emptyResult && emptyResultQuery) {
-      if (inSearchMode && visibleCount === 0) {
-        emptyResultQuery.textContent = q !== '' ? q : '(目前篩選條件)';
-        emptyResult.hidden = false;
-        if (flatList) flatList.hidden = true;
-
-        // 推薦近似 skill:對全部卡片算分數,取 top 3
-        if (emptyResultSuggestions && q) {
-          const allCards = Array.from(
-            document.querySelectorAll<HTMLElement>('#skill-list-flat .skill-card'),
-          );
-          const scored = allCards
-            .map((c) => ({
-              name: c.dataset.name || '',
-              score: suggestionScore(
-                q,
-                c.dataset.name || '',
-                c.dataset.searchText || '',
-                c.dataset.tags || '',
-              ),
-            }))
-            .sort((a, b) => a.score - b.score)
-            .slice(0, 3);
-
-          if (scored.length > 0 && scored[0].score < Infinity) {
-            const links = scored
-              .map((s) => `<a href="${window.location.pathname}skill/${s.name}"><code>${s.name}</code></a>`)
-              .join('、');
-            emptyResultSuggestions.innerHTML = `你可能在找:${links}。`;
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('#category-filters .filter-btn');
+  const grid = document.getElementById('skill-grid');
+  if (grid) {
+    const cards = grid.querySelectorAll<HTMLAnchorElement>('.skill-card');
+    filterBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.category ?? 'all';
+        filterBtns.forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        cards.forEach((card) => {
+          if (target === 'all' || card.dataset.category === target) {
+            card.hidden = false;
           } else {
-            emptyResultSuggestions.innerHTML = '';
+            card.hidden = true;
           }
-        }
-      } else {
-        emptyResult.hidden = true;
-        if (emptyResultSuggestions) emptyResultSuggestions.innerHTML = '';
-      }
-    }
-
-    if (clearBtn) {
-      clearBtn.hidden = !inSearchMode;
-    }
-
-    filterBtns.forEach((b) => {
-      const f = b.dataset.filter || '';
-      const isActive =
-        (f === 'all' && activeFilters.size === 0) ||
-        (f !== 'all' && activeFilters.has(f));
-      b.classList.toggle('is-active', isActive);
-      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      });
     });
   }
-
-  filterBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter;
-      if (!filter) return;
-
-      if (filter === 'all') {
-        activeFilters.clear();
-      } else {
-        if (activeFilters.has(filter)) {
-          activeFilters.delete(filter);
-        } else {
-          activeFilters.add(filter);
-        }
-      }
-
-      applyFilters();
-    });
-  });
-
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      searchQuery = searchInput.value;
-      applyFilters();
-    });
-  }
-
-  function resetAll(): void {
-    activeFilters.clear();
-    searchQuery = '';
-    if (searchInput) searchInput.value = '';
-    applyFilters();
-  }
-
-  if (clearBtn) {
-    clearBtn.addEventListener('click', resetAll);
-  }
-  if (emptyResultClear) {
-    emptyResultClear.addEventListener('click', resetAll);
-  }
-
-  applyFilters();
 </script>
