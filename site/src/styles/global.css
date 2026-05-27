@@ -1562,7 +1562,7 @@ hr {
     minmax(0, 1fr)  /* title + badges */
     auto            /* gap-badge / mine marker */
     80px            /* mini bar (collapsed) */
-    88px;           /* vote button */
+    96px;           /* vote button — 96px 才塞得下「本週已投」4 字 */
   column-gap: var(--space-md);
   align-items: center;
   background: var(--color-paper);
