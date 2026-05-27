@@ -31,6 +31,21 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
 
     <!-- ============== 投票 tab ============== -->
     <section id="tab-vote" class="wishlist-section">
+      {/* 排序切換列 — 新增 */}
+      <div class="vote-toolbar" id="vote-toolbar" hidden>
+        <div class="vote-toolbar__hint">
+          <span id="vote-stats">—</span>
+        </div>
+        <div class="vote-toolbar__sort" role="tablist" aria-label="排序方式">
+          <button type="button" class="sort-btn is-active" data-sort="votes" role="tab" aria-selected="true">
+            票數
+          </button>
+          <button type="button" class="sort-btn" data-sort="newest" role="tab" aria-selected="false">
+            最新
+          </button>
+        </div>
+      </div>
+
       <div id="items-list" class="wishlist-items">
         <p class="empty">載入中…</p>
       </div>
@@ -88,30 +103,118 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     display: none;
   }
 
+  /* ===================================================
+     排序切換列 (新增)
+     =================================================== */
+  .vote-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-line);
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+  .vote-toolbar[hidden] {
+    display: none;
+  }
+  .vote-toolbar__hint {
+    font-size: 0.8125rem;
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+  }
+  .vote-toolbar__sort {
+    display: flex;
+    gap: var(--space-xs);
+  }
+  .sort-btn {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid var(--color-line);
+    color: var(--color-ink-faint);
+    padding: 4px var(--space-sm);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+  }
+  .sort-btn:hover {
+    color: var(--color-ink);
+    border-color: var(--color-ink-muted);
+  }
+  .sort-btn.is-active {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border-color: var(--color-ink);
+  }
+
+  /* ===================================================
+     投票卡片 (大改)
+     =================================================== */
   .wishlist-items {
     margin-bottom: var(--space-xl);
+    /* 容器層 list-style 重置,避免某些瀏覽器自動加 bullet */
+    list-style: none;
+    padding: 0;
   }
 
   .wishlist-card {
-    display: flex;
-    gap: var(--space-md);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      "body votes button"
+      "bar  bar    bar";
+    column-gap: var(--space-md);
+    row-gap: var(--space-sm);
     align-items: center;
     background: var(--color-paper);
     border: 1px solid var(--color-line);
     border-radius: 6px;
     padding: var(--space-md) var(--space-lg);
     margin-bottom: var(--space-sm);
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
   .wishlist-card:hover {
     border-color: var(--color-ink-muted);
   }
+
+  /* 投了的卡片:左邊條粗 + 微微浮起 + ✓ 標籤 */
   .wishlist-card.is-voted {
     border-color: var(--color-ink);
-    border-left: 3px solid var(--color-ink);
+    border-left: 4px solid var(--color-ink);
+    padding-left: calc(var(--space-lg) - 3px); /* 補回 border 變粗的 3px */
+    box-shadow: 0 1px 0 var(--color-ink);
   }
+  .wishlist-card.is-voted::before {
+    content: "✓ 你投的";
+    position: absolute;
+    top: -10px;
+    left: var(--space-md);
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  /* 樂觀更新 — 剛投完那一下的閃光,跑 0.6s 就消失 */
+  @keyframes vote-flash {
+    0%   { background: var(--color-paper); }
+    20%  { background: var(--color-accent-bg); }
+    100% { background: var(--color-paper); }
+  }
+  .wishlist-card.is-just-voted {
+    animation: vote-flash 0.6s ease-out;
+  }
+
   .wishlist-card__body {
-    flex: 1;
+    grid-area: body;
     min-width: 0;
   }
   .wishlist-card__title {
@@ -121,16 +224,56 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     margin-bottom: 4px;
     color: var(--color-ink);
     letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
   }
+
+  /* Top 3 排名徽章 #1 / #2 / #3 */
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+  }
+  .rank-badge--1 { background: #1a1a1a; }
+  .rank-badge--2 { background: #3d3d3d; }
+  .rank-badge--3 { background: #525252; }
+
+  /* 「新提案」徽章(48h 內提的) */
+  .new-badge {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-warn, #8a6d3b);
+    background: var(--color-warn-bg, #f6efd9);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
   .wishlist-card__desc {
     font-size: 0.875rem;
     color: var(--color-ink-muted);
     line-height: 1.55;
     margin: 0;
   }
+
+  /* 票數區 — 新版 */
   .wishlist-card__votes {
+    grid-area: votes;
     text-align: right;
-    min-width: 60px;
+    min-width: 64px;
   }
   .wishlist-card__count {
     font-family: var(--font-mono);
@@ -139,6 +282,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     color: var(--color-ink);
     display: block;
     line-height: 1;
+    transition: transform 0.2s ease;
+  }
+  .wishlist-card.is-just-voted .wishlist-card__count {
+    transform: scale(1.15);
   }
   .wishlist-card__label {
     font-family: var(--font-mono);
@@ -148,6 +295,76 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     letter-spacing: 0.08em;
   }
 
+  /* button + 可選的 gap badge 都放在 action 區 */
+  .wishlist-card__action {
+    grid-area: button;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  /* 距 Top 3 還差 X 票 — 只在第 4 名以後顯示,坐在 button 旁邊 */
+  .gap-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-ink-muted);
+    background: var(--color-paper-dim);
+    border: 1px dashed var(--color-line);
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* 比例條 — 滿格 = 本週最高票 */
+  .vote-bar {
+    grid-area: bar;
+    height: 4px;
+    background: var(--color-paper-dim);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .vote-bar__fill {
+    height: 100%;
+    background: var(--color-ink);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .wishlist-card.is-voted .vote-bar__fill {
+    background: var(--color-ink); /* 已經夠深了,維持一致 */
+  }
+  /* 第 4 名以後的比例條色淡一階,視覺暗示「還在追」 */
+  .wishlist-card.is-below-cut .vote-bar__fill {
+    background: var(--color-ink-muted);
+    opacity: 0.5;
+  }
+
+  /* 空狀態 CTA */
+  .empty-vote {
+    padding: var(--space-2xl) var(--space-lg);
+    text-align: center;
+    color: var(--color-ink-muted);
+    border: 1px dashed var(--color-line);
+    border-radius: 6px;
+    background: var(--color-paper-dim);
+  }
+  .empty-vote__title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: var(--space-sm);
+  }
+  .empty-vote__body {
+    font-size: 0.9375rem;
+    color: var(--color-ink-muted);
+    margin-bottom: var(--space-lg);
+    line-height: 1.6;
+  }
+
+  /* ===================================================
+     Sidebar / 提案 / 結果 — 原本樣式
+     =================================================== */
   .wishlist-sidebar {
     background: var(--color-paper-dim);
     border: 1px solid var(--color-line);
@@ -291,20 +508,54 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     border-color: var(--color-ink);
   }
 
+  /* ===================================================
+     Mobile
+     =================================================== */
   @media (max-width: 720px) {
     .wishlist-card {
-      flex-wrap: wrap;
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "body  votes"
+        "button button"
+        "bar    bar";
     }
-    .wishlist-card__votes {
-      text-align: left;
-      min-width: 0;
+    .wishlist-card__action {
+      justify-self: stretch;
+    }
+    .wishlist-card__action button {
+      width: 100%;
+    }
+    .gap-badge {
+      margin-right: 0;
+      justify-self: start;
+    }
+    .vote-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-sm);
     }
   }
 </style>
 
 <script define:vars={{ GAS_URL }}>
   const STORAGE_KEY = 'wishlist_voter_token';
+  const TOP_N = 3; // 跟 GAS config 對齊 — Top N 進排程
+  const NEW_BADGE_HOURS = 48; // 48h 內提的算「新」
 
+  // ============================================================
+  // Local state — 單一資料來源,所有 render 從這出
+  // ============================================================
+  const state = {
+    week: null,
+    items: [],          // [{ id, title, description, votes, created_at? }]
+    myVoteThisWeek: null,
+    sidebar: { scheduled: [], shipped: [] },
+    sortBy: 'votes',    // 'votes' | 'newest'
+  };
+
+  // ============================================================
+  // Voter token + fingerprint
+  // ============================================================
   function getVoterToken() {
     let token = localStorage.getItem(STORAGE_KEY);
     if (!token) {
@@ -323,22 +574,22 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     };
   }
 
-async function apiGet(action, extra = {}) {
-  if (!GAS_URL) {
-    return { ok: false, error: 'gas_not_configured' };
+  // ============================================================
+  // API — 加 cache busting 防 GAS / 瀏覽器 cache
+  // ============================================================
+  async function apiGet(action, extra = {}) {
+    if (!GAS_URL) return { ok: false, error: 'gas_not_configured' };
+    const params = new URLSearchParams({ action, ...extra, _t: String(Date.now()) });
+    try {
+      const resp = await fetch(`${GAS_URL}?${params.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
+      });
+      return await resp.json();
+    } catch (err) {
+      return { ok: false, error: 'network_error' };
+    }
   }
-  // 加時戳防止瀏覽器 / CDN cache
-  const params = new URLSearchParams({ action, ...extra, _t: String(Date.now()) });
-  try {
-    const resp = await fetch(`${GAS_URL}?${params.toString()}`, {
-      method: 'GET',
-      cache: 'no-store',
-    });
-    return await resp.json();
-  } catch (err) {
-    return { ok: false, error: 'network_error' };
-  }
-}
 
   async function apiPost(action, data = {}) {
     if (!GAS_URL) {
@@ -354,6 +605,9 @@ async function apiGet(action, extra = {}) {
     }
   }
 
+  // ============================================================
+  // UI helpers
+  // ============================================================
   function toast(msg, type) {
     const el = document.getElementById('toast');
     if (!el) return;
@@ -361,8 +615,6 @@ async function apiGet(action, extra = {}) {
     el.className = 'toast show';
     if (type === 'error') {
       el.style.background = 'var(--color-neg, #6b4444)';
-    } else if (type === 'success') {
-      el.style.background = 'var(--color-ink)';
     } else {
       el.style.background = 'var(--color-ink)';
     }
@@ -375,94 +627,275 @@ async function apiGet(action, extra = {}) {
     );
   }
 
-  // ===== Tab 切換 =====
-  document.querySelectorAll('.filter-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn[data-tab]').forEach(b => {
-        b.classList.remove('is-active');
-        b.setAttribute('aria-selected', 'false');
-      });
-      btn.classList.add('is-active');
-      btn.setAttribute('aria-selected', 'true');
-      document.querySelectorAll('.wishlist-section').forEach(s => s.hidden = true);
-      const tab = btn.dataset.tab;
-      const section = document.getElementById('tab-' + tab);
-      if (section) section.hidden = false;
-      if (tab === 'results') loadResults();
-    });
-  });
+  function isNewProposal(item) {
+    if (!item.created_at) return false;
+    const ageMs = Date.now() - new Date(item.created_at).getTime();
+    return ageMs < NEW_BADGE_HOURS * 60 * 60 * 1000;
+  }
 
-  // ===== 投票頁 =====
-  let myVoteThisWeek = null;
-  let currentWeek = null;
+  // ============================================================
+  // RENDER — 純函式,吃 state 不打 API
+  // ============================================================
+  function render() {
+    renderWeekInfo();
+    renderItems();
+    renderSidebar();
+    renderToolbar();
+  }
 
-  async function loadItems() {
-    const [data, me] = await Promise.all([
-      apiGet('items'),
-      apiGet('me', { voter_token: getVoterToken() })
-    ]);
-
-    const list = document.getElementById('items-list');
+  function renderWeekInfo() {
     const weekInfo = document.getElementById('week-info');
-
-    if (!data.ok) {
-      list.innerHTML = `<p class="empty">載入失敗:${data.error}。請確認 GAS_URL 已設定。</p>`;
+    if (!state.week) {
       weekInfo.textContent = '無法連線';
       return;
     }
-
-    currentWeek = data.week;
-    myVoteThisWeek = me.ok ? me.voted_for : null;
-
     weekInfo.innerHTML = `
-      <span>本週 <strong>${data.week}</strong></span>
-      <span>${myVoteThisWeek ? '你已投票 ✓' : '你還沒投'}</span>
+      <span>本週 <strong>${state.week}</strong></span>
+      <span>${state.myVoteThisWeek ? '你已投票 ✓' : '你還沒投'}</span>
     `;
+  }
 
-    if (data.items.length === 0) {
-      list.innerHTML = '<p class="empty">本週還沒有可投票的提案。<br/>切到提案 tab 提出第一個!</p>';
+  function renderToolbar() {
+    const toolbar = document.getElementById('vote-toolbar');
+    const stats = document.getElementById('vote-stats');
+    if (state.items.length === 0) {
+      toolbar.hidden = true;
+      return;
+    }
+    toolbar.hidden = false;
+    const totalVotes = state.items.reduce((sum, i) => sum + i.votes, 0);
+    stats.textContent = `${state.items.length} 個提案 · 本週共 ${totalVotes} 票`;
+  }
+
+  function renderItems() {
+    const list = document.getElementById('items-list');
+
+    if (state.items.length === 0) {
+      list.innerHTML = `
+        <div class="empty-vote">
+          <div class="empty-vote__title">本週還沒有可投票的提案</div>
+          <div class="empty-vote__body">
+            想看到什麼 skill?第一個提出來,大家投你
+          </div>
+          <button type="button" class="btn-download btn-download--large" id="go-propose">
+            去提案 →
+          </button>
+        </div>
+      `;
+      document.getElementById('go-propose').addEventListener('click', () => {
+        switchTab('propose');
+      });
+      return;
+    }
+
+    // 票數排序(始終算 rank,因為 rank 跟「進前 3」判定都需要)
+    const byVotes = [...state.items].sort((a, b) => {
+      if (b.votes !== a.votes) return b.votes - a.votes;
+      // 同票數時:已投的排前面(讓使用者一眼看到自己的),否則新的排前面
+      if (state.myVoteThisWeek === a.id) return -1;
+      if (state.myVoteThisWeek === b.id) return 1;
+      const aTime = new Date(a.created_at || 0).getTime();
+      const bTime = new Date(b.created_at || 0).getTime();
+      return bTime - aTime;
+    });
+
+    // rank map by id
+    const rankById = {};
+    byVotes.forEach((item, i) => { rankById[item.id] = i + 1; });
+
+    // 第 3 名的票數(用來算「再幾票進前 3」)
+    const cutoffVotes = byVotes[TOP_N - 1] ? byVotes[TOP_N - 1].votes : 0;
+
+    // 本週最高票(比例條基準)
+    const maxVotes = byVotes[0] ? byVotes[0].votes : 0;
+
+    // 依使用者選的 sort 決定顯示順序
+    let displayed;
+    if (state.sortBy === 'newest') {
+      displayed = [...state.items].sort((a, b) => {
+        const aTime = new Date(a.created_at || 0).getTime();
+        const bTime = new Date(b.created_at || 0).getTime();
+        return bTime - aTime;
+      });
     } else {
-      list.innerHTML = data.items.map(item => `
-        <div class="wishlist-card ${myVoteThisWeek === item.id ? 'is-voted' : ''}">
+      displayed = byVotes;
+    }
+
+    list.innerHTML = displayed.map(item => {
+      const rank = rankById[item.id];
+      const isVoted = state.myVoteThisWeek === item.id;
+      const isInTop = rank <= TOP_N;
+      const isBelowCut = rank > TOP_N;
+      const gapToCut = isBelowCut ? Math.max(0, cutoffVotes - item.votes) : 0;
+      const barWidth = maxVotes > 0 ? Math.max(2, (item.votes / maxVotes) * 100) : 0;
+      const showNewBadge = isNewProposal(item);
+
+      const rankBadge = isInTop
+        ? `<span class="rank-badge rank-badge--${rank}">#${rank}</span>`
+        : '';
+
+      const newBadge = showNewBadge
+        ? `<span class="new-badge">New</span>`
+        : '';
+
+      const gapBadge = isBelowCut
+        ? `<span class="gap-badge">${gapToCut === 0 ? '平手' : `+${gapToCut + 1} 進前 ${TOP_N}`}</span>`
+        : '';
+
+      // Button 文字 + 狀態
+      let buttonHtml;
+      if (state.myVoteThisWeek === item.id) {
+        buttonHtml = `<button class="btn-download" disabled>已投 ✓</button>`;
+      } else if (state.myVoteThisWeek) {
+        buttonHtml = `<button class="btn-download" disabled>本週已投</button>`;
+      } else {
+        buttonHtml = `<button class="btn-download" data-vote-id="${item.id}">投這個</button>`;
+      }
+
+      return `
+        <div class="wishlist-card ${isVoted ? 'is-voted' : ''} ${isBelowCut ? 'is-below-cut' : ''}"
+             data-id="${item.id}">
           <div class="wishlist-card__body">
-            <div class="wishlist-card__title">${escapeHtml(item.title)}</div>
+            <div class="wishlist-card__title">
+              ${rankBadge}
+              <span>${escapeHtml(item.title)}</span>
+              ${newBadge}
+            </div>
             ${item.description ? `<p class="wishlist-card__desc">${escapeHtml(item.description)}</p>` : ''}
           </div>
           <div class="wishlist-card__votes">
             <span class="wishlist-card__count">${item.votes}</span>
             <span class="wishlist-card__label">votes</span>
           </div>
-          <button class="btn-download" data-vote-id="${item.id}" ${myVoteThisWeek ? 'disabled' : ''}>
-            ${myVoteThisWeek === item.id ? '已投' : (myVoteThisWeek ? '本週已投' : '投這個')}
-          </button>
+          <div class="wishlist-card__action">
+            ${gapBadge}
+            ${buttonHtml}
+          </div>
+          <div class="vote-bar">
+            <div class="vote-bar__fill" style="width: ${barWidth}%"></div>
+          </div>
         </div>
-      `).join('');
+      `;
+    }).join('');
 
-      list.querySelectorAll('button[data-vote-id]').forEach(btn => {
-        btn.addEventListener('click', () => vote(btn.dataset.voteId));
-      });
-    }
+    // 綁投票事件
+    list.querySelectorAll('button[data-vote-id]').forEach(btn => {
+      btn.addEventListener('click', () => vote(btn.dataset.voteId));
+    });
+  }
 
+  function renderSidebar() {
     const schedEl = document.getElementById('sidebar-scheduled');
     const shipEl = document.getElementById('sidebar-shipped');
-    schedEl.innerHTML = data.sidebar.scheduled.length
-      ? data.sidebar.scheduled.map(i => `<li>${escapeHtml(i.title)}</li>`).join('')
+    schedEl.innerHTML = state.sidebar.scheduled.length
+      ? state.sidebar.scheduled.map(i => `<li>${escapeHtml(i.title)}</li>`).join('')
       : '<li class="wishlist-sidebar__empty">—</li>';
-    shipEl.innerHTML = data.sidebar.shipped.length
-      ? data.sidebar.shipped.map(i => `<li>${escapeHtml(i.title)}</li>`).join('')
+    shipEl.innerHTML = state.sidebar.shipped.length
+      ? state.sidebar.shipped.map(i => `<li>${escapeHtml(i.title)}</li>`).join('')
       : '<li class="wishlist-sidebar__empty">—</li>';
   }
 
+  // ============================================================
+  // Tab 切換
+  // ============================================================
+  function switchTab(tabName) {
+    document.querySelectorAll('.filter-btn[data-tab]').forEach(b => {
+      const active = b.dataset.tab === tabName;
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('.wishlist-section').forEach(s => s.hidden = true);
+    const section = document.getElementById('tab-' + tabName);
+    if (section) section.hidden = false;
+    if (tabName === 'results') loadResults();
+  }
+
+  document.querySelectorAll('.filter-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // ============================================================
+  // 排序切換
+  // ============================================================
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sort = btn.dataset.sort;
+      if (state.sortBy === sort) return;
+      state.sortBy = sort;
+      document.querySelectorAll('.sort-btn').forEach(b => {
+        const active = b.dataset.sort === sort;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-selected', String(active));
+      });
+      renderItems();
+    });
+  });
+
+  // ============================================================
+  // 載入 + 投票
+  // ============================================================
+  async function loadItems() {
+    const [data, me] = await Promise.all([
+      apiGet('items'),
+      apiGet('me', { voter_token: getVoterToken() })
+    ]);
+
+    if (!data.ok) {
+      document.getElementById('items-list').innerHTML =
+        `<p class="empty">載入失敗:${data.error}。請確認 GAS_URL 已設定。</p>`;
+      document.getElementById('week-info').textContent = '無法連線';
+      return;
+    }
+
+    state.week = data.week;
+    state.items = data.items || [];
+    state.sidebar = data.sidebar || { scheduled: [], shipped: [] };
+    state.myVoteThisWeek = me.ok ? me.voted_for : null;
+
+    render();
+  }
+
   async function vote(ideaId) {
-    if (myVoteThisWeek) {
+    if (state.myVoteThisWeek) {
       toast('你本週已經投過了', 'error');
       return;
     }
+
+    // === Optimistic update ===
+    // 先在 local state 改完,立刻 render,然後才打 API
+    const item = state.items.find(i => i.id === ideaId);
+    if (!item) return;
+
+    const previousState = {
+      myVote: state.myVoteThisWeek,
+      itemVotes: item.votes,
+    };
+
+    state.myVoteThisWeek = ideaId;
+    item.votes += 1;
+    render();
+
+    // 觸發剛投完的閃光動畫
+    requestAnimationFrame(() => {
+      const card = document.querySelector(`.wishlist-card[data-id="${ideaId}"]`);
+      if (card) {
+        card.classList.add('is-just-voted');
+        setTimeout(() => card.classList.remove('is-just-voted'), 600);
+      }
+    });
+
+    // === 打 API ===
     const result = await apiPost('vote', { idea_id: ideaId });
     if (result.ok) {
-      toast('投票成功!', 'success');
-      await loadItems();
+      toast('投票成功!');
+      // 背景同步一次,確保票數跟 server 對齊(不阻塞使用者)
+      loadItems();
     } else {
+      // === Rollback ===
+      state.myVoteThisWeek = previousState.myVote;
+      item.votes = previousState.itemVotes;
+      render();
+
       const messages = {
         already_voted_cookie: '你本週已經投過了',
         already_voted_fingerprint: '此裝置本週已經投過',
@@ -473,7 +906,9 @@ async function apiGet(action, extra = {}) {
     }
   }
 
-  // ===== 提案頁 =====
+  // ============================================================
+  // 提案
+  // ============================================================
   const proposeBtn = document.getElementById('propose-submit');
   if (proposeBtn) {
     proposeBtn.addEventListener('click', async () => {
@@ -488,9 +923,11 @@ async function apiGet(action, extra = {}) {
         document.getElementById('propose-title').value = '';
         document.getElementById('propose-desc').value = '';
         if (result.status === 'pending') {
-          toast('提案已送出,等候 Vt 審核', 'success');
+          toast('提案已送出,等候 Vt 審核');
         } else {
-          toast('提案已上架,可以投票了', 'success');
+          toast('提案已上架,可以投票了');
+          // 切回投票 tab 並 reload
+          switchTab('vote');
           loadItems();
         }
       } else {
@@ -499,7 +936,9 @@ async function apiGet(action, extra = {}) {
     });
   }
 
-  // ===== 歷史結果頁 =====
+  // ============================================================
+  // 歷史結果
+  // ============================================================
   async function loadResults() {
     const list = document.getElementById('results-list');
     const data = await apiGet('results');
