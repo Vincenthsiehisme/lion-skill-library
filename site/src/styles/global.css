@@ -9,6 +9,22 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* ============================================================
+   [hidden] attribute fix
+   ============================================================
+   瀏覽器預設 [hidden] { display: none } 會被後面的 display: grid /
+   display: flex 等規則覆蓋(specificity 一樣,後寫的贏),強制
+   !important 讓 [hidden] 屬性始終勝出。
+
+   Astro template 多處用 hidden attribute 控制顯示切換:
+     - index 的 flat list vs grouped sections
+     - wishlist 的 tabs / toolbar / empty result
+   沒這條保護,任何有 display: 規則的元素都會無視 hidden attr。
+   ============================================================ */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   /* ----- Palette: warm-neutral utility ----- */
   --color-paper: #fafaf8;
