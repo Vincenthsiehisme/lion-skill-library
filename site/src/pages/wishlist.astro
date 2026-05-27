@@ -192,10 +192,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
   .wishlist-card {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 104px;
+    grid-template-columns: 64px minmax(0, 1fr) 104px;
     grid-template-areas:
-      "body action"
-      "bar  bar";
+      "votes body action"
+      "bar   bar  bar";
     column-gap: var(--space-lg);
     row-gap: var(--space-sm);
     align-items: stretch;
@@ -283,17 +283,20 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
   .rank-badge--2 { background: #3d3d3d; }
   .rank-badge--3 { background: #525252; }
 
-  /* 「新提案」徽章(48h 內提的) */
+  /* 「新提案」標籤(48h 內提的) — pill 樣式,有邊框感更像貼上去的標籤 */
   .new-badge {
     font-family: var(--font-mono);
     font-size: 0.625rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     color: var(--color-warn, #8a6d3b);
     background: var(--color-warn-bg, #f6efd9);
-    padding: 1px 6px;
-    border-radius: 3px;
+    border: 1px solid var(--color-warn, #8a6d3b);
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.4;
+    flex-shrink: 0;
   }
 
   .wishlist-card__desc {
@@ -308,26 +311,30 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     text-overflow: ellipsis;
   }
 
-  /* 右側動作區 — vertical stack:票數在上、按鈕在下 */
+  /* 右側動作區 — 只放投票按鈕,垂直置中 */
   .wishlist-card__action {
     grid-area: action;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    justify-content: space-between;
-    gap: var(--space-xs);
+    justify-content: center;
     min-width: 0;
   }
+
+  /* 票數區 — 卡片最左欄,獨立成排行榜列 */
   .wishlist-card__votes {
+    grid-area: votes;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     line-height: 1;
+    padding-right: var(--space-md);
+    border-right: 1px solid var(--color-line);
   }
   .wishlist-card__count {
     font-family: var(--font-mono);
-    font-size: 1.625rem;
-    font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--color-ink);
     line-height: 1;
     transition: transform 0.2s ease;
@@ -967,6 +974,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
       return `
         <div class="wishlist-card ${isVoted ? 'is-voted' : ''} ${isBelowCut ? 'is-below-cut' : ''}"
              data-id="${item.id}">
+          <div class="wishlist-card__votes">
+            <span class="wishlist-card__count">${item.votes}</span>
+            <span class="wishlist-card__label">votes</span>
+          </div>
           <div class="wishlist-card__body">
             <div class="wishlist-card__title">
               ${rankBadge}
@@ -976,10 +987,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
             ${item.description ? `<p class="wishlist-card__desc">${escapeHtml(item.description)}</p>` : ''}
           </div>
           <div class="wishlist-card__action">
-            <div class="wishlist-card__votes">
-              <span class="wishlist-card__count">${item.votes}</span>
-              <span class="wishlist-card__label">votes</span>
-            </div>
             ${buttonHtml}
           </div>
           <div class="wishlist-card__bar-row">
