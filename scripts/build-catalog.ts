@@ -183,10 +183,32 @@ function extractAtGlance(description: string, body: string): AtGlance {
   const triggerKeywords = triggerMatch ? triggerMatch[1].trim().replace(/\s+/g, ' ') : null;
 
   // --- DO NOT trigger 段 ---
+  // 容忍兩種寫法:
+  //   v1: "DO NOT trigger for: 場景 1、場景 2..."
+  //   v2: "Do NOT: 場景 1 → skill-a;場景 2 → skill-b..."
+  // 中文 alternate 必須是段落起首結構(後面跟冒號或破折號),否則容易誤觸 description 內文中的「不觸發」「不適用」單字。
   const doNotMatch = description.match(
-    /(?:DO NOT trigger(?: for)?|不適用|不要觸發|不觸發)[::]?\s*([\s\S]*?)(?=\n\s*\n|$)/i,
+    /(?:DO NOT trigger(?: for)?|Do NOT|DO NOT|不適用情境|不要觸發的情境|不觸發情境)[::]\s*([\s\S]*?)(?=\n\s*\n|$)/i,
   );
   const doNotTrigger = doNotMatch ? doNotMatch[1].trim().replace(/\s+/g, ' ') : null;
+
+  // --- DO NOT trigger 首句 hint ---
+  // 從 doNotTrigger 段抽「第一條替代建議」,用於卡片消歧義 hint。
+  // 寫作慣例觀察:多半長這樣 →
+  //   「審 skill 結構(用 skill-review)、規劃新 skill(用 skill-brain)、...」
+  //   「寫產品 PRD(用 prd-writer);批判性概念設計審查(用 critical-reviewer);...」
+  // 抽第一個「、」「;」「,」「.」之前的片段,長度截到 60 字內。
+  let doNotFirstHint: string | null = null;
+  if (doNotTrigger) {
+    // 切到第一個列舉分隔符
+    const firstChunk = doNotTrigger.split(/[、;;,.。]/)[0]?.trim() ?? '';
+    if (firstChunk && firstChunk.length <= 80) {
+      doNotFirstHint = firstChunk;
+    } else if (firstChunk) {
+      // 太長就硬截到 60 字 + 省略號
+      doNotFirstHint = firstChunk.slice(0, 60) + '…';
+    }
+  }
 
   // --- Gotchas 標題清單 ---
   // 找 ## Gotchas 區段(中英都接受),用雙策略撈標題:
@@ -220,6 +242,7 @@ function extractAtGlance(description: string, body: string): AtGlance {
   return {
     triggerKeywords,
     doNotTrigger,
+    doNotFirstHint,
     gotchaTitles,
   };
 }
@@ -241,8 +264,12 @@ function buildSkillMeta(folder: string): SkillMeta {
   const references = readReferences(folder);
   const atGlance = extractAtGlance(fm.description, body);
 
+  // group fallback:沒寫 frontmatter 的 skill 暫歸 'specialty',main() 會印 warning
+  const group = fm.group ?? 'specialty';
+
   return {
     ...fm,
+    group,
     body,
     zipFilename,
     zipSize,
@@ -262,9 +289,62 @@ function main(): void {
 
   const skills: SkillMeta[] = folders.map(buildSkillMeta);
 
-  // Sort: category then name
+  // ─────────────────────────────────────────────────────────
+  // Lint pass(不 fail,只 warning)
+  //   1. group 未宣告 → 提醒 maintainer
+  //   2. feeds_into / consumes_from 對稱性檢查
+  //   3. 關係指向不存在的 skill
+  // ─────────────────────────────────────────────────────────
+  const warnings: string[] = [];
+  const nameSet = new Set(skills.map((s) => s.name));
+  const skillByName = new Map(skills.map((s) => [s.name, s]));
+
+  for (const s of skills) {
+    // (1) group missing
+    const fm = matter(readFileSync(join(SKILLS_DIR, s.name, 'SKILL.md'), 'utf-8')).data;
+    if (!fm.group) {
+      warnings.push(`[group-missing] ${s.name}: 未宣告 group,目前 fallback 到 'specialty'`);
+    }
+
+    // (2a) feeds_into 對稱性:A feeds_into B → B 應 consumes_from A
+    for (const target of s.feeds_into) {
+      if (!nameSet.has(target)) {
+        warnings.push(`[unknown-skill] ${s.name}.feeds_into 指向不存在的 skill: ${target}`);
+        continue;
+      }
+      const targetSkill = skillByName.get(target);
+      if (targetSkill && !targetSkill.consumes_from.includes(s.name)) {
+        warnings.push(
+          `[asymmetric] ${s.name} feeds_into ${target},但 ${target}.consumes_from 沒含 ${s.name}`,
+        );
+      }
+    }
+
+    // (2b) consumes_from 對稱性:A consumes_from B → B 應 feeds_into A
+    for (const source of s.consumes_from) {
+      if (!nameSet.has(source)) {
+        warnings.push(`[unknown-skill] ${s.name}.consumes_from 指向不存在的 skill: ${source}`);
+        continue;
+      }
+      const sourceSkill = skillByName.get(source);
+      if (sourceSkill && !sourceSkill.feeds_into.includes(s.name)) {
+        warnings.push(
+          `[asymmetric] ${s.name} consumes_from ${source},但 ${source}.feeds_into 沒含 ${s.name}`,
+        );
+      }
+    }
+  }
+
+  if (warnings.length > 0) {
+    console.log(`⚠️  ${warnings.length} lint warning(s):`);
+    for (const w of warnings) console.log(`   ${w}`);
+    console.log('');
+  }
+
+  // Sort: group order then name
+  // 注意:Astro 端會自己再依 GROUP_META.order 分組渲染,這裡的排序只是讓 JSON 穩定。
   skills.sort((a, b) => {
-    if (a.category !== b.category) return a.category.localeCompare(b.category);
+    if (a.group !== b.group) return a.group.localeCompare(b.group);
     return a.name.localeCompare(b.name);
   });
 
@@ -298,6 +378,7 @@ function main(): void {
       name: s.name,
       version: s.version,
       category: s.category,
+      group: s.group,
       description: s.description.split('\n')[0].trim(),
       tags: s.tags,
       zipFilename: s.zipFilename,
