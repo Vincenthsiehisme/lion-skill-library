@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import PipelineDiagram from '../components/PipelineDiagram.astro';
 import catalog from '../data/skills.generated.json';
-import type { SkillMeta } from '../types';
+import type { SkillMeta, SkillGroup } from '../types';
 
 const CATEGORY_LABELS: Record<string, string> = {
   planning: '規劃',
@@ -13,15 +14,92 @@ const CATEGORY_LABELS: Record<string, string> = {
   domain: '領域',
 };
 
+// ─────────────────────────────────────────────────────────────
+// Group meta · 與 scripts/schema.ts 的 GROUP_META 對齊
+// 修改時兩邊都要改;Astro 不能直接 import .ts script 模組所以這裡複寫
+// ─────────────────────────────────────────────────────────────
+const GROUP_META: Record<
+  SkillGroup,
+  { label: string; blurb: string; order: number }
+> = {
+  'skill-meta': {
+    label: 'Skill 元工具',
+    blurb: '規劃、寫、審、沉澱 skill 本身的工具家族。彼此互相串成一條 lifecycle。',
+    order: 1,
+  },
+  'pm-workflow': {
+    label: 'PM 工作流',
+    blurb: 'PRD、審查、派工、故事拆解。產品經理日常產出的主要工具。',
+    order: 2,
+  },
+  'data-pipeline': {
+    label: '資料 pipeline',
+    blurb: '清整、整形、檢定、解讀、視覺化。從髒 CSV 到可講的洞察。',
+    order: 3,
+  },
+  'lion-schema': {
+    label: '雄獅資料知識',
+    blurb: 'ERP / PCM / CMS / 行銷 / 行程組合器等資料庫 schema 與 API 對照。',
+    order: 4,
+  },
+  'lion-system': {
+    label: '雄獅系統架構',
+    blurb: '團體、訂單、搜尋系統的架構顧問與故障診斷。',
+    order: 5,
+  },
+  'personal-style': {
+    label: '個人風格資產',
+    blurb: '個人偏好、視覺風格、輸出風格的 DNA。',
+    order: 6,
+  },
+  'marketing-seo': {
+    label: '行銷與 SEO',
+    blurb: '雄獅行銷 context、SEO 體檢、價格帶洞察。',
+    order: 7,
+  },
+  specialty: {
+    label: '專項工具',
+    blurb: '不屬於既有 pipeline 但有特定情境用途的單兵 skill。',
+    order: 8,
+  },
+};
+
 const skills = catalog.skills as SkillMeta[];
 
-// 計算每個 category 的數量
+// 計算每個 category 的數量(保留 category filter,但移到次要)
 const categoryCount: Record<string, number> = {};
 for (const s of skills) {
   categoryCount[s.category] = (categoryCount[s.category] || 0) + 1;
 }
-
 const categories = Object.keys(CATEGORY_LABELS).filter((c) => categoryCount[c] > 0);
+
+// ─────────────────────────────────────────────────────────────
+// 按 group 分組;每組內按 name 排序;空 group 不渲染
+// ─────────────────────────────────────────────────────────────
+const skillsByGroup: Record<string, SkillMeta[]> = {};
+for (const s of skills) {
+  const g = s.group || 'specialty';
+  if (!skillsByGroup[g]) skillsByGroup[g] = [];
+  skillsByGroup[g].push(s);
+}
+
+const groupedSections = (Object.keys(skillsByGroup) as SkillGroup[])
+  .filter((g) => skillsByGroup[g].length > 0)
+  .sort((a, b) => (GROUP_META[a]?.order ?? 99) - (GROUP_META[b]?.order ?? 99))
+  .map((g) => ({
+    group: g,
+    meta: GROUP_META[g] ?? { label: g, blurb: '', order: 99 },
+    skills: skillsByGroup[g].sort((a, b) => a.name.localeCompare(b.name)),
+  }));
+
+// ─────────────────────────────────────────────────────────────
+// Pipeline 視覺化候選 group:
+//   group 內 ≥ 3 個 skill 且至少有 1 條 feeds_into 關係 → 渲染 pipeline diagram
+// ─────────────────────────────────────────────────────────────
+function hasPipelineRelations(skills: SkillMeta[]): boolean {
+  if (skills.length < 3) return false;
+  return skills.some((s) => (s.feeds_into?.length ?? 0) > 0);
+}
 
 function formatSize(bytes: number): string {
   if (bytes === 0) return '—';
@@ -43,14 +121,21 @@ const BASE = import.meta.env.BASE_URL;
 // ─────────────────────────────────────────────────────────────
 // Common tasks: hardcode 的「卡情境」入口
 // 對應到 skill 必須存在於 catalog,否則跳過該 task(避免死連結)
+// 列表覆蓋常見任務 — 不存在的 skill 會自動隱藏
 // ─────────────────────────────────────────────────────────────
 const COMMON_TASKS: Array<{ task: string; skill: string; blurb: string }> = [
-  { task: '我要寫 PRD',            skill: 'prd-writer',       blurb: '結構化問診 + 模糊探索前置階段' },
-  { task: '我要審方案 / 找盲點',     skill: 'critical-reviewer', blurb: '麥肯錫式批判,顧問小組視角' },
-  { task: '我要拆 sprint 任務',     skill: 'task-dispatcher',   blurb: '偵測 Squad 範疇,輸出分工表' },
-  { task: '我要看資料 / 分析 CSV', skill: 'data-lens-proposer', blurb: '替身分析師,N 種切法擋會議提問' },
-  { task: '我要查雄獅系統',         skill: 'group-system-advisor', blurb: '控制域歸因、改動影響範圍盤點' },
-  { task: '我要結束對話交接',       skill: 'session-handoff',   blurb: '把脈絡濃縮成結構化交接文件' },
+  { task: '我要寫 PRD',              skill: 'prd-writer',         blurb: '結構化問診 + 模糊探索前置階段' },
+  { task: '我要規劃新 skill',         skill: 'skill-brain',        blurb: '釐清 problem + trigger + boundary' },
+  { task: '我要寫 SKILL.md',         skill: 'skill-create',       blurb: '把 intent 組裝成符合規範的 skill' },
+  { task: '我要審 skill',            skill: 'skill-review',       blurb: '8-dim rubric 評分 + 衝突偵測' },
+  { task: '我要找 skill 範例',        skill: 'skill-search',       blurb: '從本機三層 skill 庫萃取模式' },
+  { task: '我要找外部 skill 參考',    skill: 'skill-discovery',    blurb: 'Anthropic / GitHub 等外部範例' },
+  { task: '我要沉澱 skill 踩坑',      skill: 'skill-summary',      blurb: '把錯誤模式變 Gotcha 條目' },
+  { task: '我要審方案 / 找盲點',      skill: 'critical-reviewer',  blurb: '麥肯錫式批判,顧問小組視角' },
+  { task: '我要拆 sprint 任務',       skill: 'task-dispatcher',    blurb: '偵測 Squad 範疇,輸出分工表' },
+  { task: '我要看資料 / 分析 CSV',    skill: 'data-lens-proposer', blurb: '替身分析師,N 種切法擋會議提問' },
+  { task: '我要查雄獅系統',           skill: 'group-system-advisor', blurb: '控制域歸因、改動影響範圍盤點' },
+  { task: '我要結束對話交接',         skill: 'session-handoff',    blurb: '把脈絡濃縮成結構化交接文件' },
 ];
 const skillNames = new Set(skills.map((s) => s.name));
 const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
@@ -289,18 +374,88 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
             ))}
           </div>
 
-          <ul class="skill-grid" id="skill-list">
+          <!-- 分組區塊:預設視圖(沒搜尋/沒選 category 時) -->
+          <div class="grouped-sections" id="grouped-sections">
+            {groupedSections.map(({ group, meta, skills: groupSkills }) => (
+              <section class="group-section" data-group={group}>
+                <header class="group-section__header">
+                  <h3 class="group-section__title">
+                    {meta.label}
+                    <span class="group-section__count">{groupSkills.length}</span>
+                  </h3>
+                  <p class="group-section__blurb">{meta.blurb}</p>
+                </header>
+                {hasPipelineRelations(groupSkills) && (
+                  <PipelineDiagram skills={groupSkills} baseUrl={BASE} />
+                )}
+                <ul class="skill-grid">
+                  {groupSkills.map((skill) => {
+                    const shortDesc =
+                      skill.description.length > 160
+                        ? skill.description.slice(0, 160) + '…'
+                        : skill.description;
+                    const hint = skill.atGlance?.doNotFirstHint;
+
+                    return (
+                      <li
+                        class="skill-card"
+                        data-category={skill.category}
+                        data-group={skill.group}
+                        data-name={skill.name.toLowerCase()}
+                        data-tags={(skill.tags || []).join(' ').toLowerCase()}
+                        data-search-text={skill.description.toLowerCase()}
+                      >
+                        <h2 class="skill-card__title">
+                          <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
+                        </h2>
+                        <p class="skill-card__desc">{shortDesc}</p>
+                        {hint && (
+                          <p class="skill-card__hint">
+                            <span class="skill-card__hint-label">不是這個?</span> {hint}
+                          </p>
+                        )}
+                        <div class="skill-card__meta">
+                          <span class={`cat-badge cat-${skill.category}`}>
+                            {CATEGORY_LABELS[skill.category]}
+                          </span>
+                          <span>v{skill.version}</span>
+                          <span>{formatDate(skill.lastModified)}</span>
+                        </div>
+                        <div class="skill-card__actions">
+                          <span class="skill-card__version">
+                            {skill.tags && skill.tags.length > 0 ? skill.tags.slice(0, 2).join(' / ') : ''}
+                          </span>
+                          <a
+                            href={`${BASE}downloads/${skill.zipFilename}`}
+                            class="btn-download"
+                            download
+                          >
+                            ↓ Download
+                            <span class="btn-download__size">{formatSize(skill.zipSize)}</span>
+                          </a>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+
+          <!-- 搜尋啟動時的平鋪視圖(預設隱藏,JS 切換) -->
+          <ul class="skill-grid skill-grid--flat" id="skill-list-flat" hidden>
             {skills.map((skill) => {
-              // description 太長截斷
               const shortDesc =
-                skill.description.length > 180
-                  ? skill.description.slice(0, 180) + '…'
+                skill.description.length > 160
+                  ? skill.description.slice(0, 160) + '…'
                   : skill.description;
+              const hint = skill.atGlance?.doNotFirstHint;
 
               return (
                 <li
                   class="skill-card"
                   data-category={skill.category}
+                  data-group={skill.group}
                   data-name={skill.name.toLowerCase()}
                   data-tags={(skill.tags || []).join(' ').toLowerCase()}
                   data-search-text={skill.description.toLowerCase()}
@@ -309,6 +464,11 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
                     <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
                   </h2>
                   <p class="skill-card__desc">{shortDesc}</p>
+                  {hint && (
+                    <p class="skill-card__hint">
+                      <span class="skill-card__hint-label">不是這個?</span> {hint}
+                    </p>
+                  )}
                   <div class="skill-card__meta">
                     <span class={`cat-badge cat-${skill.category}`}>
                       {CATEGORY_LABELS[skill.category]}
@@ -336,7 +496,10 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
 
           <div id="empty-result" class="empty-result" hidden>
             <p>沒找到符合 "<span id="empty-result-query"></span>" 的 skill。</p>
-            <p class="empty-result__hint">試試其他關鍵字，或 <button type="button" id="empty-result-clear" class="link-button">瀏覽全部</button>。</p>
+            <p class="empty-result__hint">
+              <span id="empty-result-suggestions"></span>
+              試試其他關鍵字,或 <button type="button" id="empty-result-clear" class="link-button">瀏覽全部</button>。
+            </p>
           </div>
         </section>
       </>
@@ -345,30 +508,76 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
 </Layout>
 
 <script>
+  // ─────────────────────────────────────────────────────────────
   // 篩選邏輯:純 vanilla,無框架依賴
   // 行為規格:
+  //   - 預設視圖 = 分組區塊(grouped-sections);搜尋或選分類時切到平鋪(skill-list-flat)
   //   - filter 多選:點分類 = toggle、點 All = 清空所有分類選擇
   //   - search:搜 name + description + tags,即時過濾
   //   - filter Set 與 search query 是 AND 關係(同時收窄)
-  //   - 結果為 0 顯示 empty-result,Clear all 在「filter 有選 或 search 有字」時顯示
+  //   - 結果為 0 顯示 empty-result + 推薦近似 skill(基於 levenshtein-ish 距離)
+  // ─────────────────────────────────────────────────────────────
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const cards = document.querySelectorAll<HTMLElement>('.skill-card');
   const searchInput = document.getElementById('skill-search') as HTMLInputElement | null;
   const clearBtn = document.getElementById('clear-filters') as HTMLButtonElement | null;
   const emptyResult = document.getElementById('empty-result');
   const emptyResultQuery = document.getElementById('empty-result-query');
   const emptyResultClear = document.getElementById('empty-result-clear') as HTMLButtonElement | null;
-  const skillList = document.getElementById('skill-list');
+  const emptyResultSuggestions = document.getElementById('empty-result-suggestions');
+  const groupedSections = document.getElementById('grouped-sections');
+  const flatList = document.getElementById('skill-list-flat');
 
   // state
   const activeFilters = new Set<string>(); // 空 Set = All(不過濾分類)
   let searchQuery = '';
 
+  /**
+   * 計算 query 與某張卡片所有可搜尋文字的「最佳子串距離」。
+   * 越小越像。完全 substring match 回 0;否則用 query 的每個字符是否出現作粗略命中數。
+   */
+  function suggestionScore(query: string, name: string, desc: string, tags: string): number {
+    if (!query) return Infinity;
+    const haystack = (name + ' ' + desc + ' ' + tags).toLowerCase();
+    const q = query.toLowerCase();
+    if (haystack.includes(q)) return 0;
+    // 拆 query 字元,逐個檢查是否在 haystack 出現,沒命中的計分(越多沒命中分數越高)
+    let miss = 0;
+    for (const ch of q) {
+      if (!haystack.includes(ch)) miss++;
+    }
+    return miss;
+  }
+
+  /**
+   * 切換預設分組視圖 vs. 搜尋平鋪視圖。
+   * 進入「搜尋 / 分類過濾」狀態時切到平鋪,空狀態時切回分組。
+   */
+  function setView(mode: 'grouped' | 'flat'): void {
+    if (mode === 'grouped') {
+      if (groupedSections) groupedSections.hidden = false;
+      if (flatList) flatList.hidden = true;
+    } else {
+      if (groupedSections) groupedSections.hidden = true;
+      if (flatList) flatList.hidden = false;
+    }
+  }
+
   function applyFilters(): void {
     const q = searchQuery.trim().toLowerCase();
-    let visibleCount = 0;
+    const hasFilter = activeFilters.size > 0;
+    const hasQuery = q !== '';
+    const inSearchMode = hasFilter || hasQuery;
 
-    cards.forEach((card) => {
+    // 視圖切換
+    setView(inSearchMode ? 'flat' : 'grouped');
+
+    // 過濾:預設視圖時所有卡片顯示;搜尋模式只過濾平鋪那組
+    const targetCards = inSearchMode
+      ? document.querySelectorAll<HTMLElement>('#skill-list-flat .skill-card')
+      : document.querySelectorAll<HTMLElement>('#grouped-sections .skill-card');
+
+    let visibleCount = 0;
+    targetCards.forEach((card) => {
       const cat = card.dataset.category || '';
       const name = card.dataset.name || '';
       const tags = card.dataset.tags || '';
@@ -383,21 +592,48 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
       if (visible) visibleCount++;
     });
 
-    if (emptyResult && emptyResultQuery && skillList) {
-      if (visibleCount === 0) {
+    // empty result + 推薦
+    if (emptyResult && emptyResultQuery) {
+      if (inSearchMode && visibleCount === 0) {
         emptyResultQuery.textContent = q !== '' ? q : '(目前篩選條件)';
         emptyResult.hidden = false;
-        skillList.style.display = 'none';
+        if (flatList) flatList.hidden = true;
+
+        // 推薦近似 skill:對全部卡片算分數,取 top 3
+        if (emptyResultSuggestions && q) {
+          const allCards = Array.from(
+            document.querySelectorAll<HTMLElement>('#skill-list-flat .skill-card'),
+          );
+          const scored = allCards
+            .map((c) => ({
+              name: c.dataset.name || '',
+              score: suggestionScore(
+                q,
+                c.dataset.name || '',
+                c.dataset.searchText || '',
+                c.dataset.tags || '',
+              ),
+            }))
+            .sort((a, b) => a.score - b.score)
+            .slice(0, 3);
+
+          if (scored.length > 0 && scored[0].score < Infinity) {
+            const links = scored
+              .map((s) => `<a href="${window.location.pathname}skill/${s.name}"><code>${s.name}</code></a>`)
+              .join('、');
+            emptyResultSuggestions.innerHTML = `你可能在找:${links}。`;
+          } else {
+            emptyResultSuggestions.innerHTML = '';
+          }
+        }
       } else {
         emptyResult.hidden = true;
-        skillList.style.display = '';
+        if (emptyResultSuggestions) emptyResultSuggestions.innerHTML = '';
       }
     }
 
     if (clearBtn) {
-      const hasFilter = activeFilters.size > 0;
-      const hasQuery = q !== '';
-      clearBtn.hidden = !(hasFilter || hasQuery);
+      clearBtn.hidden = !inSearchMode;
     }
 
     filterBtns.forEach((b) => {
