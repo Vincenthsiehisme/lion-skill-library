@@ -46,6 +46,8 @@ function listSkillFolders(): string[] {
  *
  * 不在 git repo / 還沒 commit:三者都 fallback 到 now / 'local'。
  * firstPublished 撈不到但 lastModified 有(理論上不應發生):回傳等於 lastModified。
+ *
+ * 跨平台注意:不使用 `head` 之類的 Unix-only 工具,純 JS 處理輸出。
  */
 function getGitInfo(skillFolder: string): {
   lastModified: string;
@@ -60,11 +62,12 @@ function getGitInfo(skillFolder: string): {
     const hash = execSync(`git log -1 --format=%h -- "${path}"`, {
       encoding: 'utf-8',
     }).trim();
-    // --reverse 後 head -1 拿最舊 commit。
-    const firstDate = execSync(
-      `git log --format=%cI --reverse -- "${path}" | head -1`,
+    // 撈所有 commit 日期再取第一筆,跨平台(避免依賴 head)。
+    const allDates = execSync(
+      `git log --format=%cI --reverse -- "${path}"`,
       { encoding: 'utf-8' },
     ).trim();
+    const firstDate = allDates.split('\n')[0] || '';
     return {
       lastModified: lastDate || new Date().toISOString(),
       firstPublished: firstDate || lastDate || new Date().toISOString(),
@@ -87,9 +90,8 @@ function getGitInfo(skillFolder: string): {
  * 「沒動到 version 行的 commit」濾掉(像是改 description / 補 reference)。
  * -s 抑制 diff 輸出,只剩日期。第一筆 = 最新一次該行變動。
  *
- * Fallback:
- *   - 從未 bump 過 version (只一筆初始 commit) → 回那筆
- *   - 還沒 commit 到 git / 撈不到 → 回 null,呼叫端用 firstPublished
+ * 回傳 null 表示:從沒 bump 過 / 還沒 commit / 撈不到歷史。
+ * 呼叫端用 firstPublished 當 fallback,並另外記 hasBeenVersionBumped flag。
  */
 function getVersionBumpedAt(skillFolder: string): string | null {
   const filePath = join('skills', skillFolder, 'SKILL.md');
@@ -99,7 +101,10 @@ function getVersionBumpedAt(skillFolder: string): string | null {
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] },
     ).trim();
     const lines = out.split('\n').filter((l) => /^\d{4}-/.test(l));
-    return lines[0] || null;
+    // git -L 的輸出:從新到舊。如果只有一筆 = 初始 commit,沒 bump 過。
+    // 兩筆以上才算「真的有 bump」過。
+    if (lines.length <= 1) return null;
+    return lines[0];
   } catch {
     return null;
   }
@@ -258,7 +263,9 @@ function buildSkillMeta(folder: string): SkillMeta {
   const zipSize = existsSync(zipPath) ? statSync(zipPath).size : 0;
 
   const { lastModified, firstPublished, commitHash } = getGitInfo(folder);
-  const versionBumpedAt = getVersionBumpedAt(folder) ?? firstPublished;
+  const bumpedAt = getVersionBumpedAt(folder);
+  const hasBeenVersionBumped = bumpedAt !== null;
+  const versionBumpedAt = bumpedAt ?? firstPublished;
 
   const body = parsed.content.trim();
   const references = readReferences(folder);
@@ -276,6 +283,7 @@ function buildSkillMeta(folder: string): SkillMeta {
     lastModified,
     firstPublished,
     versionBumpedAt,
+    hasBeenVersionBumped,
     commitHash,
     references,
     atGlance,

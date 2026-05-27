@@ -1,6 +1,6 @@
 /**
  * SKILL.md frontmatter schema (Zod)
- * 三個 script 共用，避免重複定義。
+ * 三個 script 共用,避免重複定義。
  */
 
 import { z } from 'zod';
@@ -32,11 +32,11 @@ export const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], { zh: string; 
 /**
  * 「群組」── 比 category 更貼近使用者腦中的分類軸。
  *
- * 一個 skill 屬於一個 group，最多 8 個 group。
+ * 一個 skill 屬於一個 group,最多 8 個 group。
  * - category 描述「這個 skill 在做什麼類型的事」(planning/writing/...)
  * - group   描述「這個 skill 跟哪些 skill 是一夥的」(skill-meta/pm-workflow/...)
  *
- * 同 group 內常見 pipeline 關係，可透過 feeds_into / consumes_from 進一步宣告。
+ * 同 group 內常見 pipeline 關係,可透過 feeds_into / consumes_from 進一步宣告。
  */
 export const GROUPS = [
   'skill-meta',
@@ -170,7 +170,7 @@ export interface SkillMeta extends SkillFrontmatter {
   body: string;
   /** zip 檔名（相對於 site/public/downloads/） */
   zipFilename: string;
-  /** zip 大小，bytes */
+  /** zip 大小,bytes */
   zipSize: number;
   /** 最後 commit 日期 ISO 8601 — 任何改動都會更新 */
   lastModified: string;
@@ -181,9 +181,16 @@ export interface SkillMeta extends SkillFrontmatter {
    * - 用於「新版本」判定。
    * - 與 lastModified 的差別:typo / reference 補丁不算 version bump。
    * - fallback:若無歷史(skill 剛建立或 git 撈不到) → 等於 firstPublished。
+   *   此時 hasBeenVersionBumped 為 false,前端用該 flag 判斷而非比對日期。
    */
   versionBumpedAt: string;
-  /** Git commit hash（short），對應 lastModified 那次 commit */
+  /**
+   * 該 skill 是否曾經 bump 過 version(初始 commit 之後又改過 version 行)。
+   * 用於前端區分「新發布」vs「新版本」清單,避免間接靠
+   * `versionBumpedAt !== firstPublished` 判定。
+   */
+  hasBeenVersionBumped: boolean;
+  /** Git commit hash（short）,對應 lastModified 那次 commit */
   commitHash: string;
   /** references/ 子檔清單,平展(目前不處理子資料夾) */
   references: SkillReference[];
