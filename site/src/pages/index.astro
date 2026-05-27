@@ -73,8 +73,17 @@ function withinWindow(iso: string): boolean {
 }
 
 function daysAgo(iso: string): string {
-  const ms = now - new Date(iso).getTime();
-  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  // 以 UTC+8(台灣)的日曆日為基準計算「幾天前」,讓「今天/昨天」對齊人類直覺。
+  // 不用 toLocaleDateString,因為 server-side build 環境的 locale 不可靠。
+  // 例:5/28 8:00 看 5/27 22:00 的 commit → 24h 內,但日曆是昨天,應顯示「昨天」。
+  const TZ_OFFSET_MS = 8 * 60 * 60 * 1000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const calendarDay = (t: number) => Math.floor((t + TZ_OFFSET_MS) / DAY_MS);
+
+  const target = calendarDay(new Date(iso).getTime());
+  const today = calendarDay(now);
+  const days = today - target;
+
   if (days <= 0) return '今天';
   if (days === 1) return '昨天';
   if (days < 7) return `${days} 天前`;
@@ -180,6 +189,8 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
 
         <!-- ─────────────────────────────────────────────────────────
              Recent · 給「回訪的人」的雙線時間軸
+             用 .skill-card 重用完整目錄的卡片樣式,風格一致;
+             兩個 section(新發布 / 新版本)各自一橫排 grid 而非並排兩欄。
              ───────────────────────────────────────────────────────── -->
         {showRecent && (
           <section class="recent">
@@ -187,46 +198,92 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
               <h2 class="recent__title">最近動態</h2>
               <span class="recent__hint">{RECENT_WINDOW_DAYS} 天內的變化</span>
             </div>
-            <div class="recent__cols">
-              {newReleases.length > 0 && (
-                <div class="recent__col">
-                  <div class="recent__col-label">新發布</div>
-                  <ul class="recent__list">
-                    {newReleases.map((s) => (
-                      <li>
-                        <a href={`${BASE}skill/${s.name}`} class="recent-item">
-                          <span class="recent-item__name">{s.name}</span>
-                          <span class="recent-item__meta">
-                            <span class="recent-item__when">{daysAgo(s.firstPublished)}</span>
-                            <span class="recent-item__sep">·</span>
-                            <span class="recent-item__version">v{s.version}</span>
+
+            {newReleases.length > 0 && (
+              <div class="recent__group">
+                <div class="recent__group-label">新發布</div>
+                <ul class="skill-grid recent__grid">
+                  {newReleases.map((s) => {
+                    const shortDesc =
+                      s.description.length > 180
+                        ? s.description.slice(0, 180) + '…'
+                        : s.description;
+                    return (
+                      <li class="skill-card recent-card">
+                        <span class="recent-card__badge badge-new">NEW</span>
+                        <h2 class="skill-card__title">
+                          <a href={`${BASE}skill/${s.name}`}>{s.name}</a>
+                        </h2>
+                        <p class="skill-card__desc">{shortDesc}</p>
+                        <div class="skill-card__meta">
+                          <span class={`cat-badge cat-${s.category}`}>
+                            {CATEGORY_LABELS[s.category]}
                           </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {newVersions.length > 0 && (
-                <div class="recent__col">
-                  <div class="recent__col-label">新版本</div>
-                  <ul class="recent__list">
-                    {newVersions.map((s) => (
-                      <li>
-                        <a href={`${BASE}skill/${s.name}`} class="recent-item">
-                          <span class="recent-item__name">{s.name}</span>
-                          <span class="recent-item__meta">
-                            <span class="recent-item__when">{daysAgo(s.versionBumpedAt)}</span>
-                            <span class="recent-item__sep">·</span>
-                            <span class="recent-item__version">v{s.version}</span>
+                          <span>v{s.version}</span>
+                          <span>{daysAgo(s.firstPublished)}</span>
+                        </div>
+                        <div class="skill-card__actions">
+                          <span class="skill-card__version">
+                            {s.tags && s.tags.length > 0 ? s.tags.slice(0, 2).join(' / ') : ''}
                           </span>
-                        </a>
+                          <a
+                            href={`${BASE}downloads/${s.zipFilename}`}
+                            class="btn-download"
+                            download
+                          >
+                            ↓ Download
+                            <span class="btn-download__size">{formatSize(s.zipSize)}</span>
+                          </a>
+                        </div>
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {newVersions.length > 0 && (
+              <div class="recent__group">
+                <div class="recent__group-label">新版本</div>
+                <ul class="skill-grid recent__grid">
+                  {newVersions.map((s) => {
+                    const shortDesc =
+                      s.description.length > 180
+                        ? s.description.slice(0, 180) + '…'
+                        : s.description;
+                    return (
+                      <li class="skill-card recent-card">
+                        <span class="recent-card__badge badge-update">v{s.version}</span>
+                        <h2 class="skill-card__title">
+                          <a href={`${BASE}skill/${s.name}`}>{s.name}</a>
+                        </h2>
+                        <p class="skill-card__desc">{shortDesc}</p>
+                        <div class="skill-card__meta">
+                          <span class={`cat-badge cat-${s.category}`}>
+                            {CATEGORY_LABELS[s.category]}
+                          </span>
+                          <span>v{s.version}</span>
+                          <span>{daysAgo(s.versionBumpedAt)}</span>
+                        </div>
+                        <div class="skill-card__actions">
+                          <span class="skill-card__version">
+                            {s.tags && s.tags.length > 0 ? s.tags.slice(0, 2).join(' / ') : ''}
+                          </span>
+                          <a
+                            href={`${BASE}downloads/${s.zipFilename}`}
+                            class="btn-download"
+                            download
+                          >
+                            ↓ Download
+                            <span class="btn-download__size">{formatSize(s.zipSize)}</span>
+                          </a>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </section>
         )}
 
@@ -349,7 +406,8 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
   //   - filter Set 與 search query 是 AND 關係(同時收窄)
   //   - 結果為 0 顯示 empty-result,Clear all 在「filter 有選 或 search 有字」時顯示
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const cards = document.querySelectorAll<HTMLElement>('.skill-card');
+  // 只抓完整目錄裡的卡片,避免影響「最近動態」section 的卡片
+  const cards = document.querySelectorAll<HTMLElement>('#skill-list .skill-card');
   const searchInput = document.getElementById('skill-search') as HTMLInputElement | null;
   const clearBtn = document.getElementById('clear-filters') as HTMLButtonElement | null;
   const emptyResult = document.getElementById('empty-result');
@@ -449,3 +507,57 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
 
   applyFilters();
 </script>
+
+<!--
+  scoped styles · 只服務「最近動態」section 的新 class。
+  其餘樣式吃 global.css(包含 .skill-card / .skill-grid 等)。
+  badge 採用相對定位的右上角小角標,卡片本體保持與下方目錄完全一致。
+-->
+<style>
+  .recent__group {
+    margin-bottom: 2rem;
+  }
+  .recent__group:last-child {
+    margin-bottom: 0;
+  }
+  .recent__group-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .recent__grid {
+    /* 用既有 .skill-grid 的 grid 設定,不覆蓋 */
+  }
+  .recent-card {
+    position: relative;
+  }
+  .recent-card__badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    line-height: 1.4;
+    z-index: 1;
+  }
+  .recent-card__badge.badge-new {
+    background: var(--accent, #2563eb);
+    color: #fff;
+  }
+  .recent-card__badge.badge-update {
+    background: transparent;
+    color: var(--accent, #2563eb);
+    border: 1px solid var(--accent, #2563eb);
+  }
+  /* 卡片標題避免被 badge 蓋到 */
+  .recent-card .skill-card__title {
+    padding-right: 4.5rem;
+  }
+</style>
