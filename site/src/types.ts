@@ -12,16 +12,6 @@ export interface AtGlance {
   gotchaTitles: string[];
 }
 
-export type SkillGroup =
-  | 'skill-meta'
-  | 'pm-workflow'
-  | 'data-pipeline'
-  | 'lion-schema'
-  | 'lion-system'
-  | 'personal-style'
-  | 'marketing-seo'
-  | 'specialty';
-
 export interface SkillMeta {
   name: string;
   description: string;
@@ -31,9 +21,6 @@ export interface SkillMeta {
   author?: string;
   tags: string[];
   related: string[];
-  group: SkillGroup;
-  feeds_into: string[];
-  consumes_from: string[];
   body: string;
   zipFilename: string;
   zipSize: number;
