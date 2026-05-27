@@ -29,72 +29,6 @@ export const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], { zh: string; 
   domain: { zh: '領域', en: 'Domain' },
 };
 
-/**
- * 「群組」── 比 category 更貼近使用者腦中的分類軸。
- *
- * 一個 skill 屬於一個 group,最多 8 個 group。
- * - category 描述「這個 skill 在做什麼類型的事」(planning/writing/...)
- * - group   描述「這個 skill 跟哪些 skill 是一夥的」(skill-meta/pm-workflow/...)
- *
- * 同 group 內常見 pipeline 關係,可透過 feeds_into / consumes_from 進一步宣告。
- */
-export const GROUPS = [
-  'skill-meta',
-  'pm-workflow',
-  'data-pipeline',
-  'lion-schema',
-  'lion-system',
-  'personal-style',
-  'marketing-seo',
-  'specialty',
-] as const;
-
-export const GROUP_META: Record<
-  (typeof GROUPS)[number],
-  { label: string; blurb: string; order: number }
-> = {
-  'skill-meta': {
-    label: 'Skill 元工具',
-    blurb: '規劃、寫、審、沉澱 skill 本身的工具家族。彼此互相串成一條 lifecycle。',
-    order: 1,
-  },
-  'pm-workflow': {
-    label: 'PM 工作流',
-    blurb: 'PRD、審查、派工、故事拆解。產品經理日常產出的主要工具。',
-    order: 2,
-  },
-  'data-pipeline': {
-    label: '資料 pipeline',
-    blurb: '清整、整形、檢定、解讀、視覺化。從髒 CSV 到可講的洞察。',
-    order: 3,
-  },
-  'lion-schema': {
-    label: '雄獅資料知識',
-    blurb: 'ERP / PCM / CMS / 行銷 / 行程組合器等資料庫 schema 與 API 對照。',
-    order: 4,
-  },
-  'lion-system': {
-    label: '雄獅系統架構',
-    blurb: '團體、訂單、搜尋系統的架構顧問與故障診斷。',
-    order: 5,
-  },
-  'personal-style': {
-    label: '個人風格資產',
-    blurb: '個人偏好、視覺風格、輸出風格的 DNA。',
-    order: 6,
-  },
-  'marketing-seo': {
-    label: '行銷與 SEO',
-    blurb: '雄獅行銷 context、SEO 體檢、價格帶洞察。',
-    order: 7,
-  },
-  specialty: {
-    label: '專項工具',
-    blurb: '不屬於既有 pipeline 但有特定情境用途的單兵 skill。',
-    order: 8,
-  },
-};
-
 export const SkillFrontmatterSchema = z.object({
   name: z
     .string()
@@ -109,22 +43,6 @@ export const SkillFrontmatterSchema = z.object({
   author: z.string().optional(),
   tags: z.array(z.string()).optional().default([]),
   related: z.array(z.string()).optional().default([]),
-  /**
-   * 群組歸屬。
-   * - optional:舊 skill 沒填會 fallback 到 'specialty',但會被 validate 印 warning
-   * - 一個 skill 只能屬於一個 group
-   */
-  group: z.enum(GROUPS).optional(),
-  /**
-   * pipeline 關係 — 我的輸出餵給哪些 skill。
-   * - 陣列元素是 skill 的 `name` 欄位(kebab-case)
-   * - 對稱性由 build-catalog 檢查:若 A feeds_into B 但 B 沒寫 consumes_from A → warning
-   */
-  feeds_into: z.array(z.string()).optional().default([]),
-  /**
-   * pipeline 關係 — 我的輸入來自哪些 skill。同上規則。
-   */
-  consumes_from: z.array(z.string()).optional().default([]),
 });
 
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
