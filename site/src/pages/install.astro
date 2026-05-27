@@ -5,7 +5,7 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
 ---
 
 <Layout title="Install" description="Lion Skill Library 安裝教學:Claude Code 一行指令,或手動下載 zip">
-  <div class="container container-prose">
+  <div class="install-page">
     <a href={BASE} class="detail-back">← back to index</a>
 
     <header class="detail-header">
@@ -16,189 +16,221 @@ const SITE = 'https://vincenthsiehisme.github.io/lion-skill-library';
       </p>
     </header>
 
-    <article class="skill-body">
+    <div class="install-layout">
 
       <!-- ════════════════════════════════════════ -->
-      <!-- 路 A:Claude Code 一行指令              -->
+      <!-- 左側 sticky TOC                          -->
       <!-- ════════════════════════════════════════ -->
-      <h2 id="claude-code-script">路 A · Claude Code(一行指令)</h2>
-      <p>
-        最快路徑。你電腦上要有 <strong>Claude Code</strong>(終端機版,還沒裝看本頁
-        <a href="#install-claude-code">最後一段</a>)。打開 terminal,貼這行:
-      </p>
+      <aside class="install-toc" aria-label="頁面目錄">
+        <nav>
+          <ol>
+            <li><a href="#claude-code-script" data-toc-link>路 A · Claude Code</a></li>
+            <li><a href="#manual-download" data-toc-link>路 B · 手動下載 zip</a></li>
+            <li><a href="#install-claude-code" data-toc-link>附錄 · 安裝 Claude Code</a></li>
+            <li><a href="#verify" data-toc-link>確認 / 更新 / 解除安裝</a></li>
+            <li><a href="#faq" data-toc-link>常見問題</a></li>
+          </ol>
+        </nav>
+      </aside>
 
-      <h3>裝單一 skill</h3>
+
+      <!-- ════════════════════════════════════════ -->
+      <!-- 右側內容                                  -->
+      <!-- ════════════════════════════════════════ -->
+      <article class="skill-body install-content">
+
+        <!-- ═══════ 路 A ═══════ -->
+        <section data-toc-section>
+          <h2 id="claude-code-script">路 A · Claude Code(一行指令)</h2>
+          <p>
+            最快路徑。你電腦上要有 <strong>Claude Code</strong>(終端機版,還沒裝看本頁
+            <a href="#install-claude-code">附錄</a>)。打開 terminal,貼這行:
+          </p>
+
+          <h3>裝單一 skill</h3>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting</code></pre>
 
-      <h3>列出所有可裝的 skill</h3>
+          <h3>列出所有可裝的 skill</h3>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- list</code></pre>
 
-      <h3>一次裝整個庫</h3>
+          <h3>一次裝整個庫</h3>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install --all</code></pre>
 
-      <h3>裝到當前專案而非全域</h3>
-      <p>預設裝到 <code>~/.claude/skills/</code>(全專案共用)。如果只想對某個專案啟用:</p>
+          <h3>裝到當前專案而非全域</h3>
+          <p>預設裝到 <code>~/.claude/skills/</code>(全專案共用)。如果只想對某個專案啟用:</p>
 <pre><code>cd /path/to/your/project
 curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --scope project</code></pre>
-      <p>會裝到 <code>./.claude/skills/</code>,只在那個專案的 Claude Code session 觸發。</p>
+          <p>會裝到 <code>./.claude/skills/</code>,只在那個專案的 Claude Code session 觸發。</p>
 
-      <h3>覆蓋更新</h3>
-      <p>已經裝過、想換最新版:</p>
+          <h3>覆蓋更新</h3>
+          <p>已經裝過、想換最新版:</p>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --force</code></pre>
 
-      <h3>所有指令一覽</h3>
+          <h3>所有指令一覽</h3>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- help</code></pre>
 
-      <h3 style="margin-top: 2rem;">Windows · PowerShell</h3>
-      <p>Windows 使用者用這套(也支援 PowerShell on macOS / Linux)。先下載 ps1 到本機:</p>
+          <h3>Windows · PowerShell</h3>
+          <p>Windows 使用者用這套(也支援 PowerShell on macOS / Linux)。先下載 ps1 到本機:</p>
 <pre><code>iwr {SITE}/install.ps1 -useb -OutFile install.ps1</code></pre>
-      <p>然後跑指令:</p>
+          <p>然後跑指令:</p>
 <pre><code>.\install.ps1 list
 .\install.ps1 install example-greeting
 .\install.ps1 install --all
 .\install.ps1 install example-greeting --scope project
 .\install.ps1 install example-greeting --force</code></pre>
 
-      <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--color-ink-faint);">
-        <strong>ExecutionPolicy 被擋?</strong>用這條一次性 bypass(不改全域設定):
-      </p>
+          <p class="hint">
+            <strong>ExecutionPolicy 被擋?</strong>用這條一次性 bypass(不改全域設定):
+          </p>
 <pre><code>powershell -ExecutionPolicy Bypass -File .\install.ps1 install example-greeting</code></pre>
+        </section>
 
 
-      <!-- ════════════════════════════════════════ -->
-      <!-- 路 B:手動下載 zip                       -->
-      <!-- ════════════════════════════════════════ -->
-      <h2 id="manual-download" style="margin-top: 4rem;">路 B · 手動下載 zip</h2>
-      <p>
-        適合:Windows 使用者、Claude.ai 網頁版使用者、或就是不想跑 curl 的人。
-      </p>
+        <!-- ═══════ 路 B ═══════ -->
+        <section data-toc-section>
+          <h2 id="manual-download">路 B · 手動下載 zip</h2>
+          <p>
+            適合:Windows 使用者、Claude.ai 網頁版使用者、或就是不想跑 curl 的人。
+          </p>
 
-      <h3>Claude Code / Claude Desktop(本機版)</h3>
-      <ol>
-        <li>從 <a href={BASE}>首頁</a>點 <strong>Download</strong> 按鈕,拿到 <code>.zip</code></li>
-        <li>解壓縮,會得到一個資料夾(例如 <code>example-greeting/</code>)</li>
-        <li>把整個資料夾放進對應位置:
-          <ul style="margin-top: 0.5rem;">
-            <li>macOS / Linux: <code>~/.claude/skills/</code></li>
-            <li>Windows: <code>%USERPROFILE%\.claude\skills\</code></li>
-          </ul>
-          目錄不存在就建一個。
-        </li>
-        <li>重啟 Claude Code session,或重啟 Claude Desktop</li>
-      </ol>
+          <h3>Claude Code / Claude Desktop(本機版)</h3>
+          <ol>
+            <li>從 <a href={BASE}>首頁</a>點 <strong>Download</strong> 按鈕,拿到 <code>.zip</code></li>
+            <li>解壓縮,會得到一個資料夾(例如 <code>example-greeting/</code>)</li>
+            <li>把整個資料夾放進對應位置:
+              <ul>
+                <li>macOS / Linux: <code>~/.claude/skills/</code></li>
+                <li>Windows: <code>%USERPROFILE%\.claude\skills\</code></li>
+              </ul>
+              目錄不存在就建一個。
+            </li>
+            <li>重啟 Claude Code session,或重啟 Claude Desktop</li>
+          </ol>
 
-      <h3>Claude.ai(網頁版)</h3>
-      <ol>
-        <li>下載 zip 後解壓縮</li>
-        <li>打開 <a href="https://claude.ai/settings/capabilities" target="_blank" rel="noopener">claude.ai/settings/capabilities</a></li>
-        <li>找到 Skills 區,點 <strong>Upload</strong></li>
-        <li>選擇<strong>解壓出來的資料夾</strong>(注意:是資料夾,不是 zip)</li>
-        <li>Claude 會自動驗證並啟用</li>
-      </ol>
+          <h3>Claude.ai(網頁版)</h3>
+          <ol>
+            <li>下載 zip 後解壓縮</li>
+            <li>打開 <a href="https://claude.ai/settings/capabilities" target="_blank" rel="noopener">claude.ai/settings/capabilities</a></li>
+            <li>找到 Skills 區,點 <strong>Upload</strong></li>
+            <li>選擇<strong>解壓出來的資料夾</strong>(注意:是資料夾,不是 zip)</li>
+            <li>Claude 會自動驗證並啟用</li>
+          </ol>
+        </section>
 
 
-      <!-- ════════════════════════════════════════ -->
-      <!-- Claude Code 本身的安裝(L2 完整教學)    -->
-      <!-- ════════════════════════════════════════ -->
-      <h2 id="install-claude-code" style="margin-top: 4rem;">附錄 · 安裝 Claude Code</h2>
-      <p>
-        如果你還沒裝 Claude Code,以下是完整流程。Claude Code 是 Anthropic 官方的命令列工具,
-        讓你在 terminal 直接跟 Claude 對話、跑 skill。
-      </p>
+        <!-- ═══════ 附錄 ═══════ -->
+        <section data-toc-section>
+          <h2 id="install-claude-code">附錄 · 安裝 Claude Code</h2>
+          <p>
+            如果你還沒裝 Claude Code,以下是完整流程。Claude Code 是 Anthropic 官方的命令列工具,
+            讓你在 terminal 直接跟 Claude 對話、跑 skill。
+          </p>
 
-      <h3>1. 前置:Node.js</h3>
-      <p>Claude Code 需要 Node.js 18 或更新。先檢查:</p>
+          <h3>1. 前置:Node.js</h3>
+          <p>Claude Code 需要 Node.js 18 或更新。先檢查:</p>
 <pre><code>node --version
 # 應該看到 v18.x.x 或更高</code></pre>
-      <p>沒裝或版本太舊的話:</p>
-      <ul>
-        <li><strong>macOS:</strong><code>brew install node</code>(或從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載安裝包)</li>
-        <li><strong>Linux:</strong>用發行版套件管理員,或從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載</li>
-        <li><strong>Windows:</strong>從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載安裝包,或用 <code>winget install OpenJS.NodeJS</code></li>
-      </ul>
+          <p>沒裝或版本太舊的話:</p>
+          <ul>
+            <li><strong>macOS:</strong><code>brew install node</code>(或從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載安裝包)</li>
+            <li><strong>Linux:</strong>用發行版套件管理員,或從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載</li>
+            <li><strong>Windows:</strong>從 <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> 下載安裝包,或用 <code>winget install OpenJS.NodeJS</code></li>
+          </ul>
 
-      <h3>2. 安裝 Claude Code</h3>
-      <p>兩種方式擇一,公司內網擋哪個就用另一個:</p>
+          <h3>2. 安裝 Claude Code</h3>
+          <p>兩種方式擇一,公司內網擋哪個就用另一個:</p>
 
-      <p><strong>方式 A · npm(推薦,跨平台一致)</strong></p>
+          <p><strong>方式 A · npm(推薦,跨平台一致)</strong></p>
 <pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
 
-      <p><strong>方式 B · 官方 native installer(macOS / Linux)</strong></p>
+          <p><strong>方式 B · 官方 native installer(macOS / Linux)</strong></p>
 <pre><code>curl -fsSL https://claude.ai/install.sh | bash</code></pre>
 
-      <p>裝完驗證:</p>
+          <p>裝完驗證:</p>
 <pre><code>claude --version</code></pre>
 
-      <h3>3. 第一次啟動 + 認證</h3>
-      <p>在任何目錄打:</p>
+          <h3>3. 第一次啟動 + 認證</h3>
+          <p>在任何目錄打:</p>
 <pre><code>claude</code></pre>
-      <p>
-        第一次跑會引導你登入。兩種認證方式擇一:
-      </p>
-      <ul>
-        <li><strong>Claude subscription</strong>(Pro / Team / Enterprise):瀏覽器登入 claude.ai 帳號,額度走 subscription</li>
-        <li><strong>API key</strong>:從 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> 拿 key,額度走 API billing</li>
-      </ul>
-      <p>
-        雄獅內部用哪一種,問 Vt 或 IT 部。
-      </p>
+          <p>
+            第一次跑會引導你登入。兩種認證方式擇一:
+          </p>
+          <ul>
+            <li><strong>Claude subscription</strong>(Pro / Team / Enterprise):瀏覽器登入 claude.ai 帳號,額度走 subscription</li>
+            <li><strong>API key</strong>:從 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> 拿 key,額度走 API billing</li>
+          </ul>
+          <p>
+            雄獅內部用哪一種,問 Vt 或 IT 部。
+          </p>
 
-      <h3>4. 驗證 skill 機制能用</h3>
-      <p>先裝範例 skill 確認 pipeline 通了:</p>
+          <h3>4. 驗證 skill 機制能用</h3>
+          <p>先裝範例 skill 確認 pipeline 通了:</p>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting</code></pre>
-      <p>然後在 Claude Code 中跟它打招呼:</p>
-      <blockquote>嗨 Claude</blockquote>
-      <p>如果 skill 有觸發,Claude 會用 skill 設計的方式回應,並可能提到 Lion Skill Library。</p>
+          <p>然後在 Claude Code 中跟它打招呼:</p>
+          <blockquote>嗨 Claude</blockquote>
+          <p>如果 skill 有觸發,Claude 會用 skill 設計的方式回應,並可能提到 Lion Skill Library。</p>
 
-      <p>更詳細的 Claude Code 文件,參考 <a href="https://docs.claude.com/en/docs/claude-code" target="_blank" rel="noopener">Anthropic 官方文件</a>。</p>
-
-
-      <!-- ════════════════════════════════════════ -->
-      <!-- 確認 / 更新 / 解除安裝                   -->
-      <!-- ════════════════════════════════════════ -->
-      <h2 id="verify" style="margin-top: 4rem;">確認安裝成功</h2>
-      <p>開 Claude(任何版本),問:</p>
-      <blockquote>列出我目前安裝了哪些 skill</blockquote>
-      <p>Claude 會列出讀到的 skill。沒列到就是位置不對或沒重啟。</p>
+          <p>更詳細的 Claude Code 文件,參考 <a href="https://docs.claude.com/en/docs/claude-code" target="_blank" rel="noopener">Anthropic 官方文件</a>。</p>
+        </section>
 
 
-      <h2 id="update">更新 skill</h2>
-      <p><strong>路 A 使用者:</strong>加 <code>--force</code> 重跑指令</p>
+        <!-- ═══════ 確認 / 更新 / 解除安裝 ═══════ -->
+        <section data-toc-section>
+          <h2 id="verify">確認安裝成功</h2>
+          <p>開 Claude(任何版本),問:</p>
+          <blockquote>列出我目前安裝了哪些 skill</blockquote>
+          <p>Claude 會列出讀到的 skill。沒列到就是位置不對或沒重啟。</p>
+
+          <h2 id="update">更新 skill</h2>
+          <p><strong>路 A 使用者:</strong>加 <code>--force</code> 重跑指令</p>
 <pre><code>curl -fsSL {SITE}/install.sh | bash -s -- install example-greeting --force</code></pre>
-      <p><strong>路 B 使用者:</strong>刪掉舊資料夾,重新下載新版 zip,放進去,重啟 Claude</p>
+          <p><strong>路 B 使用者:</strong>刪掉舊資料夾,重新下載新版 zip,放進去,重啟 Claude</p>
 
-
-      <h2 id="uninstall">解除安裝</h2>
-      <p>直接刪掉 skill 資料夾:</p>
+          <h2 id="uninstall">解除安裝</h2>
+          <p>直接刪掉 skill 資料夾:</p>
 <pre><code># macOS / Linux
 rm -rf ~/.claude/skills/&lt;skill-name&gt;
 
 # Windows PowerShell
 Remove-Item -Recurse "$env:USERPROFILE\.claude\skills\&lt;skill-name&gt;"</code></pre>
-      <p>重啟 Claude。</p>
+          <p>重啟 Claude。</p>
+        </section>
 
 
-      <!-- ════════════════════════════════════════ -->
-      <!-- 常見問題                                  -->
-      <!-- ════════════════════════════════════════ -->
-      <h2 id="faq" style="margin-top: 4rem;">常見問題</h2>
+        <!-- ═══════ FAQ(折疊) ═══════ -->
+        <section data-toc-section>
+          <h2 id="faq">常見問題</h2>
 
-      <h3>Claude 沒有觸發我裝的 skill</h3>
-      <p>三個可能原因:</p>
-      <ol>
-        <li><strong>沒重啟 Claude</strong>:skill 是 session 啟動時載入,要重開新 session 才生效</li>
-        <li><strong>位置錯</strong>:確認檔案在 <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>,**注意有外層資料夾**</li>
-        <li><strong>觸發條件沒對上</strong>:每個 skill 的 description 寫了它何時觸發,沒命中關鍵字就不會跑。看 skill 詳情頁的觸發詞</li>
-      </ol>
+          <details class="faq-item">
+            <summary>Claude 沒有觸發我裝的 skill</summary>
+            <div class="faq-body">
+              <p>三個可能原因:</p>
+              <ol>
+                <li><strong>沒重啟 Claude</strong>:skill 是 session 啟動時載入,要重開新 session 才生效</li>
+                <li><strong>位置錯</strong>:確認檔案在 <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>,<strong>注意有外層資料夾</strong></li>
+                <li><strong>觸發條件沒對上</strong>:每個 skill 的 description 寫了它何時觸發,沒命中關鍵字就不會跑。看 skill 詳情頁的觸發詞</li>
+              </ol>
+            </div>
+          </details>
 
-      <h3>裝了多個 skill 會不會互相干擾</h3>
-      <p>不會。Claude 根據對話語意判斷該觸發哪個。相關的 skill 建議一起裝(網站會在卡片上標 related)。</p>
+          <details class="faq-item">
+            <summary>裝了多個 skill 會不會互相干擾</summary>
+            <div class="faq-body">
+              <p>不會。Claude 根據對話語意判斷該觸發哪個。相關的 skill 建議一起裝(網站會在卡片上標 related)。</p>
+            </div>
+          </details>
 
-      <h3>解壓出來是 prd-writer/prd-writer/... 兩層</h3>
-      <p>不應該。zip 內部結構是「外層 prd-writer/」,你解壓出來應該只有一層。如果出現雙層,把內層整個拿出來就好。</p>
+          <details class="faq-item">
+            <summary>解壓出來是 prd-writer/prd-writer/... 兩層</summary>
+            <div class="faq-body">
+              <p>不應該。zip 內部結構是「外層 prd-writer/」,你解壓出來應該只有一層。如果出現雙層,把內層整個拿出來就好。</p>
+            </div>
+          </details>
 
-      <h3>curl 指令跑出 "command not found: jq"</h3>
-      <p>腳本需要 <code>jq</code> 或 <code>python3</code> 任一來解析 manifest。大多數 Mac / Linux 預設有 python3,Windows WSL 也是。如果都沒裝:</p>
+          <details class="faq-item">
+            <summary>curl 指令跑出 "command not found: jq"</summary>
+            <div class="faq-body">
+              <p>腳本需要 <code>jq</code> 或 <code>python3</code> 任一來解析 manifest。大多數 Mac / Linux 預設有 python3,Windows WSL 也是。如果都沒裝:</p>
 <pre><code># macOS
 brew install jq
 
@@ -207,38 +239,276 @@ sudo apt install jq
 
 # RHEL / CentOS
 sudo yum install jq</code></pre>
+            </div>
+          </details>
 
-      <h3>PowerShell 跑腳本被擋(ExecutionPolicy)</h3>
-      <p>三種解法擇一:</p>
-      <ol>
-        <li><strong>一次性 bypass</strong>(不改全域,最推薦):
+          <details class="faq-item">
+            <summary>PowerShell 跑腳本被擋(ExecutionPolicy)</summary>
+            <div class="faq-body">
+              <p>三種解法擇一:</p>
+              <ol>
+                <li><strong>一次性 bypass</strong>(不改全域,最推薦):
 <pre><code>powershell -ExecutionPolicy Bypass -File .\install.ps1 install example-greeting</code></pre>
-        </li>
-        <li><strong>當前 session 放行</strong>(關閉 PowerShell 就失效):
+                </li>
+                <li><strong>當前 session 放行</strong>(關閉 PowerShell 就失效):
 <pre><code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
-        </li>
-        <li><strong>當前使用者永久放行</strong>(企業環境可能擋這條):
+                </li>
+                <li><strong>當前使用者永久放行</strong>(企業環境可能擋這條):
 <pre><code>Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</code></pre>
-        </li>
-      </ol>
-      <p style="font-size: 0.875rem; color: var(--color-ink-faint);">
-        三條都擋?走<a href="#manual-download">路 B 手動下載 zip</a>,沒人擋得了你拖檔案。
-      </p>
+                </li>
+              </ol>
+              <p class="hint">三條都擋?走<a href="#manual-download">路 B 手動下載 zip</a>,沒人擋得了你拖檔案。</p>
+            </div>
+          </details>
 
-      <h3>公司 MIS 擋 GitHub Pages</h3>
-      <p>跟 IT 部反映 <code>vincenthsiehisme.github.io</code> 是內部工具(自己人 maintain)需要解禁。或私訊 Vt 改用 USB 傳。</p>
+          <details class="faq-item">
+            <summary>公司 MIS 擋 GitHub Pages</summary>
+            <div class="faq-body">
+              <p>跟 IT 部反映 <code>vincenthsiehisme.github.io</code> 是內部工具(自己人 maintain)需要解禁。或私訊 Vt 改用 USB 傳。</p>
+            </div>
+          </details>
 
-      <h3>我想改 skill 的內容</h3>
-      <p>直接編輯 <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>。本機改動不會同步回 Lion Skill Library。改得不錯想回饋,Slack 私訊 Vt。</p>
+          <details class="faq-item">
+            <summary>我想改 skill 的內容</summary>
+            <div class="faq-body">
+              <p>直接編輯 <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>。本機改動不會同步回 Lion Skill Library。改得不錯想回饋,私訊 Vt。</p>
+            </div>
+          </details>
+        </section>
 
+        <hr class="footer-rule" />
+        <p class="footnote">
+          問題或建議:私訊 Vt,或在
+          <a href="https://github.com/Vincenthsiehisme/lion-skill-library/issues" target="_blank" rel="noopener">GitHub repo</a>
+          開 issue。
+        </p>
 
-      <hr style="margin: 4rem 0; border: none; border-top: 1px solid var(--color-line);" />
-      <p style="font-size: 0.875rem; color: var(--color-ink-faint);">
-        問題或建議:私訊 Vt,或在
-        <a href="https://github.com/Vincenthsiehisme/lion-skill-library/issues" target="_blank" rel="noopener">GitHub repo</a>
-        開 issue。
-      </p>
-
-    </article>
+      </article>
+    </div>
   </div>
 </Layout>
+
+<style>
+  /* ─────────────────────────────────────────────
+     版面:左 TOC + 右 content,RWD 在 1024 以下塌成單欄
+     ───────────────────────────────────────────── */
+  .install-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .install-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  @media (max-width: 1024px) {
+    .install-layout {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     左側 TOC
+     ───────────────────────────────────────────── */
+  .install-toc {
+    position: sticky;
+    top: 2rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 1024px) {
+    .install-toc {
+      position: relative;
+      top: 0;
+      padding: 1rem 0;
+      border-top: 1px solid var(--color-line);
+      border-bottom: 1px solid var(--color-line);
+    }
+  }
+
+  .install-toc ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-left: 2px solid var(--color-line);
+  }
+
+  .install-toc li {
+    margin: 0;
+  }
+
+  .install-toc a {
+    display: block;
+    padding: 0.4rem 0 0.4rem 0.875rem;
+    margin-left: -2px;
+    border-left: 2px solid transparent;
+    color: var(--color-ink-faint);
+    text-decoration: none;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .install-toc a:hover {
+    color: var(--color-ink);
+  }
+
+  .install-toc a.is-active {
+    color: var(--color-ink);
+    border-left-color: var(--color-ink);
+  }
+
+  /* ─────────────────────────────────────────────
+     右側內容
+     ───────────────────────────────────────────── */
+  .install-content {
+    min-width: 0;  /* 防止 pre 撐爆 grid */
+  }
+
+  .install-content section {
+    margin-bottom: 4rem;
+  }
+
+  .install-content section:last-of-type {
+    margin-bottom: 2rem;
+  }
+
+  .install-content h2 {
+    scroll-margin-top: 2rem;  /* 配合 sticky TOC,點目錄跳轉時錨點不被遮住 */
+  }
+
+  .install-content .hint {
+    font-size: 0.875rem;
+    color: var(--color-ink-faint);
+  }
+
+  /* ─────────────────────────────────────────────
+     FAQ details/summary
+     ───────────────────────────────────────────── */
+  .faq-item {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .faq-item:first-of-type {
+    border-top: 1px solid var(--color-line);
+  }
+
+  .faq-item summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 1rem 0;
+    font-weight: 500;
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item summary::before {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 5px solid currentColor;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .faq-item[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  .faq-item summary:hover {
+    color: var(--color-ink-faint);
+  }
+
+  .faq-body {
+    padding: 0 0 1rem 1rem;
+    color: var(--color-ink);
+  }
+
+  .faq-body > *:first-child {
+    margin-top: 0;
+  }
+
+  /* ─────────────────────────────────────────────
+     底部
+     ───────────────────────────────────────────── */
+  .footer-rule {
+    margin: 4rem 0 1.5rem;
+    border: none;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .footnote {
+    font-size: 0.875rem;
+    color: var(--color-ink-faint);
+  }
+</style>
+
+<script>
+  // 用 IntersectionObserver 把當前可視 section 對應的 TOC 連結加上 .is-active
+  document.addEventListener('DOMContentLoaded', () => {
+    const tocLinks = document.querySelectorAll('[data-toc-link]');
+    const sections = document.querySelectorAll('[data-toc-section]');
+
+    if (!tocLinks.length || !sections.length) return;
+
+    // 建立 id → link 對照表
+    const linkMap = new Map();
+    tocLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (href?.startsWith('#')) {
+        linkMap.set(href.slice(1), link);
+      }
+    });
+
+    // 每個 section 內第一個 H2 的 id 作為對應 key
+    const sectionToHeadingId = new Map();
+    sections.forEach((section) => {
+      const h2 = section.querySelector('h2[id]');
+      if (h2) sectionToHeadingId.set(section, h2.id);
+    });
+
+    const setActive = (id) => {
+      tocLinks.forEach((link) => link.classList.remove('is-active'));
+      const target = linkMap.get(id);
+      if (target) target.classList.add('is-active');
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 找出當前最接近視窗頂部的 section
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+        if (visible.length > 0) {
+          const id = sectionToHeadingId.get(visible[0].target);
+          if (id) setActive(id);
+        }
+      },
+      {
+        // 把觀察區域往上偏一點,讓 H2 進入上半部就 active
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: 0,
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    // 初始 active 第一項
+    const firstId = sectionToHeadingId.get(sections[0]);
+    if (firstId) setActive(firstId);
+  });
+</script>
