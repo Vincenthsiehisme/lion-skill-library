@@ -45,12 +45,13 @@ const BASE = import.meta.env.BASE_URL;
 // 對應到 skill 必須存在於 catalog,否則跳過該 task(避免死連結)
 // ─────────────────────────────────────────────────────────────
 const COMMON_TASKS: Array<{ task: string; skill: string; blurb: string }> = [
-  { task: '我要寫 PRD',            skill: 'prd-writer',       blurb: '結構化問診 + 模糊探索前置階段' },
-  { task: '我要審方案 / 找盲點',     skill: 'critical-reviewer', blurb: '麥肯錫式批判,顧問小組視角' },
-  { task: '我要拆 sprint 任務',     skill: 'task-dispatcher',   blurb: '偵測 Squad 範疇,輸出分工表' },
-  { task: '我要看資料 / 分析 CSV', skill: 'data-lens-proposer', blurb: '替身分析師,N 種切法擋會議提問' },
-  { task: '我要查雄獅系統',         skill: 'group-system-advisor', blurb: '控制域歸因、改動影響範圍盤點' },
-  { task: '我要結束對話交接',       skill: 'session-handoff',   blurb: '把脈絡濃縮成結構化交接文件' },
+  { task: '我要寫 PRD',              skill: 'prd-writer',     blurb: '結構化問診 + 模糊探索前置階段' },
+  { task: '我要規劃新 skill',         skill: 'skill-brain',    blurb: 'Intent 釐清 + 邊界檢查,避免跟既有 skill 重疊' },
+  { task: '我要找 skill 範例',        skill: 'skill-search',   blurb: '在 user / examples / public 三層 skill 庫搜尋模式' },
+  { task: '我要寫 SKILL.md',         skill: 'skill-create',   blurb: '把 intent 組裝成符合 Anthropic 規範的 SKILL.md' },
+  { task: '我要審查既有 skill',       skill: 'skill-review',   blurb: '8-dim rubric 評分 + 跨 skill 觸發詞衝突偵測' },
+  { task: '我要找外部 skill 參考',     skill: 'skill-discovery', blurb: 'L1/L2 外部 reference 搜尋,只列 URL 不深讀' },
+  { task: '我要沉澱踩坑',             skill: 'skill-summary',  blurb: '把錯誤模式結構化成可貼 Gotchas 的草稿' },
 ];
 const skillNames = new Set(skills.map((s) => s.name));
 const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
