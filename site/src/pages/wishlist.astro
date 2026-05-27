@@ -125,6 +125,17 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
 </Layout>
 
 <style>
+  /* ============================================================
+     Wishlist · 靜態模板樣式(scoped)
+     ============================================================
+     動態渲染 class(.wishlist-card / .vote-cta / .new-badge /
+     .gap-badge / .vote-bar / .top-divider / .empty-vote /
+     .my-vote-status / .sidebar-list / .results-week / .toast)
+     已搬到 site/src/styles/global.css,因為 JS innerHTML 動態
+     插入的元素拿不到 Astro scoped style hash。
+     此處只留模板裡 hardcode 的靜態元素樣式。
+     ============================================================ */
+
   .wishlist-section {
     display: block;
   }
@@ -133,7 +144,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
   }
 
   /* ===================================================
-     排序切換列 (新增)
+     排序切換列
      =================================================== */
   .vote-toolbar {
     display: flex;
@@ -180,285 +191,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
   }
 
   /* ===================================================
-     投票卡片 (大改)
-     =================================================== */
-  .wishlist-items {
-    margin-bottom: var(--space-xl);
-    /* 容器層 list-style 重置,避免某些瀏覽器自動加 bullet */
-    list-style: none;
-    padding: 0;
-  }
-
-  /* ===================================================
-     投票卡片 — collapsed (預設) / expanded (點開)
-     collapsed: 單列 grid,僅顯示關鍵資訊
-     expanded:  加一塊 description footer
-     =================================================== */
-  .wishlist-card {
-    position: relative;
-    display: grid;
-    grid-template-columns:
-      32px            /* rank */
-      48px            /* votes */
-      minmax(0, 1fr)  /* title + badges */
-      auto            /* gap-badge / mine marker */
-      80px            /* mini bar (collapsed) */
-      88px;           /* vote button */
-    column-gap: var(--space-md);
-    align-items: center;
-    background: var(--color-paper);
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    padding: 10px var(--space-lg);
-    margin-bottom: 6px;
-    min-height: 52px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
-  }
-  .wishlist-card:hover {
-    border-color: var(--color-ink-muted);
-    background: var(--color-paper);
-  }
-
-  /* 點按鈕本身不算「展開卡片」 — 用 stopPropagation 處理在 JS */
-  .wishlist-card .vote-cta {
-    cursor: pointer;
-  }
-
-  /* === 投了的卡片 — 左 border 加粗 + ✓ ribbon === */
-  .wishlist-card.is-voted {
-    border-color: var(--color-ink);
-    border-left: 3px solid var(--color-ink);
-    padding-left: calc(var(--space-lg) - 2px);
-  }
-  .wishlist-card.is-voted::before {
-    content: "✓ 你投的";
-    position: absolute;
-    top: -10px;
-    left: var(--space-md);
-    background: var(--color-ink);
-    color: var(--color-paper);
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 3px;
-    letter-spacing: 0.05em;
-  }
-
-  /* 樂觀更新 flash */
-  @keyframes vote-flash {
-    0%   { background: var(--color-paper); }
-    20%  { background: var(--color-accent-bg); }
-    100% { background: var(--color-paper); }
-  }
-  .wishlist-card.is-just-voted {
-    animation: vote-flash 0.6s ease-out;
-  }
-
-  /* === 各 column 內容 === */
-  .wishlist-card__rank {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--color-ink-faint);
-    text-align: center;
-  }
-  .wishlist-card__rank.is-top {
-    color: var(--color-ink);
-  }
-
-  .wishlist-card__count {
-    font-family: var(--font-mono);
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--color-ink);
-    text-align: center;
-    line-height: 1;
-    transition: transform 0.2s ease;
-  }
-  .wishlist-card.is-just-voted .wishlist-card__count {
-    transform: scale(1.2);
-  }
-
-  .wishlist-card__title {
-    font-family: var(--font-display);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--color-ink);
-    letter-spacing: -0.01em;
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    line-height: 1.4;
-    min-width: 0;
-  }
-  .wishlist-card__title-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-    flex: 0 1 auto;
-  }
-  .wishlist-card.is-expanded .wishlist-card__title-text {
-    white-space: normal;
-    overflow: visible;
-  }
-
-  /* 「新提案」標籤 — pill */
-  .new-badge {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--color-warn, #8a6d3b);
-    background: var(--color-warn-bg, #f6efd9);
-    border: 1px solid var(--color-warn, #8a6d3b);
-    padding: 1px 7px;
-    border-radius: 999px;
-    line-height: 1.4;
-    flex-shrink: 0;
-  }
-
-  /* gap badge — 「還差 X 票進前 3」 */
-  .gap-badge {
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--color-ink-muted);
-    background: var(--color-paper-dim);
-    border: 1px dashed var(--color-line);
-    padding: 2px 7px;
-    border-radius: 3px;
-    white-space: nowrap;
-  }
-
-  /* mini 比例條(collapsed 時) — 細短,只是視覺暗示 */
-  .vote-bar {
-    height: 4px;
-    background: var(--color-paper-dim);
-    border-radius: 2px;
-    overflow: hidden;
-    width: 100%;
-  }
-  .vote-bar__fill {
-    height: 100%;
-    background: var(--color-ink);
-    border-radius: 2px;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .wishlist-card.is-below-cut .vote-bar__fill {
-    background: var(--color-ink-muted);
-    opacity: 0.5;
-  }
-
-  /* === 投票主 CTA === */
-  .vote-cta {
-    width: 100%;
-    background: var(--color-ink) !important;
-    color: var(--color-paper) !important;
-    border: 1px solid var(--color-ink) !important;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-  }
-  .vote-cta:hover:not(:disabled) {
-    background: #000 !important;
-    border-color: #000 !important;
-  }
-  .vote-cta:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-  .vote-cta:disabled {
-    background: var(--color-paper-dim) !important;
-    color: var(--color-ink-faint) !important;
-    border-color: var(--color-line) !important;
-    cursor: not-allowed;
-  }
-  .vote-cta.is-mine {
-    background: var(--color-paper) !important;
-    color: var(--color-ink) !important;
-    border-color: var(--color-ink) !important;
-  }
-
-  /* === expanded 才出現:description footer === */
-  .wishlist-card__expand {
-    /* 跨整列,在主 grid 下方 */
-    grid-column: 1 / -1;
-    display: none;
-    margin-top: var(--space-sm);
-    padding-top: var(--space-sm);
-    border-top: 1px solid var(--color-line);
-  }
-  .wishlist-card.is-expanded .wishlist-card__expand {
-    display: block;
-  }
-  .wishlist-card.is-expanded {
-    align-items: start;  /* 展開時內容靠上 */
-    padding-bottom: var(--space-md);
-  }
-  .wishlist-card__desc {
-    font-size: 0.875rem;
-    color: var(--color-ink-muted);
-    line-height: 1.6;
-    margin: 0;
-  }
-  .wishlist-card__desc-empty {
-    font-size: 0.8125rem;
-    color: var(--color-ink-faint);
-    font-style: italic;
-    margin: 0;
-  }
-
-  /* === 第 4 名以後的「分隔線」(前 3 / 其他) === */
-  .top-divider {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    margin: var(--space-md) 0 var(--space-sm) 0;
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--color-ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-  .top-divider::before,
-  .top-divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--color-line);
-  }
-
-  /* 空狀態 CTA */
-  .empty-vote {
-    padding: var(--space-2xl) var(--space-lg);
-    text-align: center;
-    color: var(--color-ink-muted);
-    border: 1px dashed var(--color-line);
-    border-radius: 6px;
-    background: var(--color-paper-dim);
-  }
-  .empty-vote__title {
-    font-family: var(--font-display);
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--color-ink);
-    margin-bottom: var(--space-sm);
-  }
-  .empty-vote__body {
-    font-size: 0.9375rem;
-    color: var(--color-ink-muted);
-    margin-bottom: var(--space-lg);
-    line-height: 1.6;
-  }
-
-  /* ===================================================
-     兩欄 layout (A 方向)
+     兩欄 layout
      主欄投票卡片 + sticky sidebar 儀表板
      =================================================== */
   .vote-layout {
@@ -483,7 +216,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     padding-right: 4px;
   }
 
-  /* sidebar 內每個 block */
+  /* sidebar 內每個 block(容器是靜態的,內容才是 JS 渲染) */
   .sidebar-block {
     background: var(--color-paper);
     border: 1px solid var(--color-line);
@@ -533,66 +266,9 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     line-height: 1.4;
   }
 
-  /* 我的投票狀態 */
-  .my-vote-status {
-    font-size: 0.875rem;
-    color: var(--color-ink);
-    line-height: 1.55;
-  }
-  .my-vote-status__empty {
-    color: var(--color-ink-faint);
-    font-size: 0.8125rem;
-  }
-  .my-vote-status__title {
-    font-family: var(--font-display);
-    font-weight: 600;
-    color: var(--color-ink);
-    margin-bottom: var(--space-xs);
-    display: block;
-    /* 避免長 title 撐爆 sidebar */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-  .my-vote-status__rank {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-ink-muted);
-  }
-  .my-vote-status__rank strong {
-    color: var(--color-ink);
-    font-weight: 600;
-  }
-
-  /* sidebar 清單 */
-  .sidebar-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    font-size: 0.8125rem;
-  }
-  .sidebar-list li {
-    padding: 4px 0;
-    color: var(--color-ink);
-    line-height: 1.45;
-    /* 過長省略 */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .sidebar-list li + li {
-    border-top: 1px solid var(--color-line);
-  }
-  .sidebar-list__empty {
-    color: var(--color-ink-faint) !important;
-    font-size: 0.75rem !important;
-  }
-
+  /* ===================================================
+     提案 form
+     =================================================== */
   .wishlist-intro {
     color: var(--color-ink-muted);
     font-size: 0.9375rem;
@@ -645,56 +321,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     font-family: var(--font-body);
   }
 
-  .results-week {
-    background: var(--color-paper);
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-    padding: var(--space-md) var(--space-lg);
-    margin-bottom: var(--space-sm);
-  }
-  .results-week__week {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-ink-faint);
-    margin-bottom: var(--space-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-  .results-week ol {
-    margin: 0;
-    padding-left: var(--space-lg);
-    font-size: 0.9375rem;
-  }
-  .results-week li {
-    padding: 3px 0;
-  }
-  .results-week .v {
-    font-family: var(--font-mono);
-    color: var(--color-ink-muted);
-    margin-left: 0.5em;
-    font-size: 0.8125rem;
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 18px;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    background: var(--color-ink);
-    color: var(--color-paper);
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  }
-  .toast.show {
-    opacity: 1;
-  }
-
+  /* ===================================================
+     Tab 切換時 .filter-btn[data-tab] 的 active 樣式
+     (global.css 已有 .filter-btn,這裡用 data-tab 限縮覆寫)
+     =================================================== */
   .filter-btn[data-tab].is-active {
     background: var(--color-ink);
     color: var(--color-paper);
@@ -702,7 +332,8 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
   }
 
   /* ===================================================
-     Responsive
+     Responsive — 只放靜態模板相關的響應式
+     (.wishlist-card / .gap-badge 的響應式在 global.css)
      =================================================== */
 
   /* 中等視窗:兩欄會太擠,回退單欄 */
@@ -732,23 +363,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
 
   /* Mobile */
   @media (max-width: 720px) {
-    .wishlist-card {
-      grid-template-columns: 1fr auto;
-      grid-template-areas:
-        "body  votes"
-        "button button"
-        "bar    bar";
-    }
-    .wishlist-card__action {
-      justify-self: stretch;
-    }
-    .wishlist-card__action button {
-      width: 100%;
-    }
-    .gap-badge {
-      margin-right: 0;
-      justify-self: start;
-    }
     .vote-toolbar {
       flex-direction: column;
       align-items: flex-start;
