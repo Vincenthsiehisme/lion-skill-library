@@ -323,18 +323,22 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     };
   }
 
-  async function apiGet(action, extra = {}) {
-    if (!GAS_URL) {
-      return { ok: false, error: 'gas_not_configured' };
-    }
-    const params = new URLSearchParams({ action, ...extra });
-    try {
-      const resp = await fetch(`${GAS_URL}?${params.toString()}`, { method: 'GET' });
-      return await resp.json();
-    } catch (err) {
-      return { ok: false, error: 'network_error' };
-    }
+async function apiGet(action, extra = {}) {
+  if (!GAS_URL) {
+    return { ok: false, error: 'gas_not_configured' };
   }
+  // 加時戳防止瀏覽器 / CDN cache
+  const params = new URLSearchParams({ action, ...extra, _t: String(Date.now()) });
+  try {
+    const resp = await fetch(`${GAS_URL}?${params.toString()}`, {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    return await resp.json();
+  } catch (err) {
+    return { ok: false, error: 'network_error' };
+  }
+}
 
   async function apiPost(action, data = {}) {
     if (!GAS_URL) {
