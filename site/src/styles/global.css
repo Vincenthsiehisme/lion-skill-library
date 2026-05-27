@@ -248,9 +248,19 @@ hr {
 .hero__sub {
   font-size: 1.0625rem;
   color: var(--color-ink-muted);
-  max-width: 36rem;
+  max-width: 44rem;
   margin-bottom: var(--space-md);
   line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.hero__sub-line {
+  display: block;
+}
+
+.nowrap,
+.hero__sub code {
+  white-space: nowrap;
 }
 
 /* 入口提示:把使用者導向獨立 /install 頁的完整教學。
