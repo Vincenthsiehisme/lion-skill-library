@@ -8,8 +8,19 @@ export interface SkillReference {
 export interface AtGlance {
   triggerKeywords: string | null;
   doNotTrigger: string | null;
+  doNotFirstHint: string | null;
   gotchaTitles: string[];
 }
+
+export type SkillGroup =
+  | 'skill-meta'
+  | 'pm-workflow'
+  | 'data-pipeline'
+  | 'lion-schema'
+  | 'lion-system'
+  | 'personal-style'
+  | 'marketing-seo'
+  | 'specialty';
 
 export interface SkillMeta {
   name: string;
@@ -20,6 +31,9 @@ export interface SkillMeta {
   author?: string;
   tags: string[];
   related: string[];
+  group: SkillGroup;
+  feeds_into: string[];
+  consumes_from: string[];
   body: string;
   zipFilename: string;
   zipSize: number;
