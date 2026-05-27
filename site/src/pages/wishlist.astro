@@ -189,34 +189,47 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     padding: 0;
   }
 
+  /* ===================================================
+     投票卡片 — collapsed (預設) / expanded (點開)
+     collapsed: 單列 grid,僅顯示關鍵資訊
+     expanded:  加一塊 description footer
+     =================================================== */
   .wishlist-card {
     position: relative;
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr) 104px;
-    grid-template-areas:
-      "votes body action"
-      "bar   bar  bar";
-    column-gap: var(--space-lg);
-    row-gap: var(--space-sm);
-    align-items: stretch;
+    grid-template-columns:
+      32px            /* rank */
+      48px            /* votes */
+      minmax(0, 1fr)  /* title + badges */
+      auto            /* gap-badge / mine marker */
+      80px            /* mini bar (collapsed) */
+      88px;           /* vote button */
+    column-gap: var(--space-md);
+    align-items: center;
     background: var(--color-paper);
     border: 1px solid var(--color-line);
     border-radius: 6px;
-    padding: var(--space-md) var(--space-lg);
-    margin-bottom: var(--space-sm);
-    min-height: 88px;
-    transition: border-color 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 10px var(--space-lg);
+    margin-bottom: 6px;
+    min-height: 52px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
   }
   .wishlist-card:hover {
     border-color: var(--color-ink-muted);
+    background: var(--color-paper);
   }
 
-  /* 投了的卡片:左邊條粗 + 微微浮起 + ✓ 標籤 */
+  /* 點按鈕本身不算「展開卡片」 — 用 stopPropagation 處理在 JS */
+  .wishlist-card .vote-cta {
+    cursor: pointer;
+  }
+
+  /* === 投了的卡片 — 左 border 加粗 + ✓ ribbon === */
   .wishlist-card.is-voted {
     border-color: var(--color-ink);
-    border-left: 4px solid var(--color-ink);
-    padding-left: calc(var(--space-lg) - 3px); /* 補回 border 變粗的 3px */
-    box-shadow: 0 1px 0 var(--color-ink);
+    border-left: 3px solid var(--color-ink);
+    padding-left: calc(var(--space-lg) - 2px);
   }
   .wishlist-card.is-voted::before {
     content: "✓ 你投的";
@@ -233,7 +246,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     letter-spacing: 0.05em;
   }
 
-  /* 樂觀更新 — 剛投完那一下的閃光,跑 0.6s 就消失 */
+  /* 樂觀更新 flash */
   @keyframes vote-flash {
     0%   { background: var(--color-paper); }
     20%  { background: var(--color-accent-bg); }
@@ -243,47 +256,56 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     animation: vote-flash 0.6s ease-out;
   }
 
-  .wishlist-card__body {
-    grid-area: body;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    justify-content: center;
+  /* === 各 column 內容 === */
+  .wishlist-card__rank {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-ink-faint);
+    text-align: center;
   }
+  .wishlist-card__rank.is-top {
+    color: var(--color-ink);
+  }
+
+  .wishlist-card__count {
+    font-family: var(--font-mono);
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    text-align: center;
+    line-height: 1;
+    transition: transform 0.2s ease;
+  }
+  .wishlist-card.is-just-voted .wishlist-card__count {
+    transform: scale(1.2);
+  }
+
   .wishlist-card__title {
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     color: var(--color-ink);
     letter-spacing: -0.01em;
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    flex-wrap: wrap;
     line-height: 1.4;
+    min-width: 0;
+  }
+  .wishlist-card__title-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+  .wishlist-card.is-expanded .wishlist-card__title-text {
+    white-space: normal;
+    overflow: visible;
   }
 
-  /* Top 3 排名徽章 #1 / #2 / #3 */
-  .rank-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--color-ink);
-    color: var(--color-paper);
-    letter-spacing: 0.05em;
-    line-height: 1.4;
-  }
-  .rank-badge--1 { background: #1a1a1a; }
-  .rank-badge--2 { background: #3d3d3d; }
-  .rank-badge--3 { background: #525252; }
-
-  /* 「新提案」標籤(48h 內提的) — pill 樣式,有邊框感更像貼上去的標籤 */
+  /* 「新提案」標籤 — pill */
   .new-badge {
     font-family: var(--font-mono);
     font-size: 0.625rem;
@@ -293,65 +315,44 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     color: var(--color-warn, #8a6d3b);
     background: var(--color-warn-bg, #f6efd9);
     border: 1px solid var(--color-warn, #8a6d3b);
-    padding: 2px 8px;
+    padding: 1px 7px;
     border-radius: 999px;
     line-height: 1.4;
     flex-shrink: 0;
   }
 
-  .wishlist-card__desc {
-    font-size: 0.875rem;
+  /* gap badge — 「還差 X 票進前 3」 */
+  .gap-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
     color: var(--color-ink-muted);
-    line-height: 1.55;
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    background: var(--color-paper-dim);
+    border: 1px dashed var(--color-line);
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* mini 比例條(collapsed 時) — 細短,只是視覺暗示 */
+  .vote-bar {
+    height: 4px;
+    background: var(--color-paper-dim);
+    border-radius: 2px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    width: 100%;
+  }
+  .vote-bar__fill {
+    height: 100%;
+    background: var(--color-ink);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .wishlist-card.is-below-cut .vote-bar__fill {
+    background: var(--color-ink-muted);
+    opacity: 0.5;
   }
 
-  /* 右側動作區 — 只放投票按鈕,垂直置中 */
-  .wishlist-card__action {
-    grid-area: action;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-width: 0;
-  }
-
-  /* 票數區 — 卡片最左欄,獨立成排行榜列 */
-  .wishlist-card__votes {
-    grid-area: votes;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    padding-right: var(--space-md);
-    border-right: 1px solid var(--color-line);
-  }
-  .wishlist-card__count {
-    font-family: var(--font-mono);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-ink);
-    line-height: 1;
-    transition: transform 0.2s ease;
-  }
-  .wishlist-card.is-just-voted .wishlist-card__count {
-    transform: scale(1.15);
-  }
-  .wishlist-card__label {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: var(--color-ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 2px;
-  }
-
-  /* 投票主 CTA — 卡片右側的主要動作鈕,填滿樣式 */
+  /* === 投票主 CTA === */
   .vote-cta {
     width: 100%;
     background: var(--color-ink) !important;
@@ -361,9 +362,8 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.05em;
-    padding: 6px 10px;
+    padding: 5px 10px;
     border-radius: 4px;
-    cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   }
   .vote-cta:hover:not(:disabled) {
@@ -379,54 +379,59 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     border-color: var(--color-line) !important;
     cursor: not-allowed;
   }
-  /* 已投自己這張時:鈕變 outline ✓ */
   .vote-cta.is-mine {
     background: var(--color-paper) !important;
     color: var(--color-ink) !important;
     border-color: var(--color-ink) !important;
   }
 
-  /* 距 Top 3 還差 X 票 — 放在 bar row 右側,不再擠在按鈕旁 */
-  .wishlist-card__bar-row {
-    grid-area: bar;
+  /* === expanded 才出現:description footer === */
+  .wishlist-card__expand {
+    /* 跨整列,在主 grid 下方 */
+    grid-column: 1 / -1;
+    display: none;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-line);
+  }
+  .wishlist-card.is-expanded .wishlist-card__expand {
+    display: block;
+  }
+  .wishlist-card.is-expanded {
+    align-items: start;  /* 展開時內容靠上 */
+    padding-bottom: var(--space-md);
+  }
+  .wishlist-card__desc {
+    font-size: 0.875rem;
+    color: var(--color-ink-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .wishlist-card__desc-empty {
+    font-size: 0.8125rem;
+    color: var(--color-ink-faint);
+    font-style: italic;
+    margin: 0;
+  }
+
+  /* === 第 4 名以後的「分隔線」(前 3 / 其他) === */
+  .top-divider {
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    margin-top: 4px;
-  }
-  .gap-badge {
+    margin: var(--space-md) 0 var(--space-sm) 0;
     font-family: var(--font-mono);
     font-size: 0.6875rem;
-    color: var(--color-ink-muted);
-    background: var(--color-paper-dim);
-    border: 1px dashed var(--color-line);
-    padding: 2px 8px;
-    border-radius: 3px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    color: var(--color-ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
-
-  /* 比例條 — 滿格 = 本週最高票;現在是 bar-row 內的 flex item */
-  .vote-bar {
+  .top-divider::before,
+  .top-divider::after {
+    content: "";
     flex: 1;
-    height: 4px;
-    background: var(--color-paper-dim);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .vote-bar__fill {
-    height: 100%;
-    background: var(--color-ink);
-    border-radius: 2px;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .wishlist-card.is-voted .vote-bar__fill {
-    background: var(--color-ink); /* 已經夠深了,維持一致 */
-  }
-  /* 第 4 名以後的比例條色淡一階,視覺暗示「還在追」 */
-  .wishlist-card.is-below-cut .vote-bar__fill {
-    background: var(--color-ink-muted);
-    opacity: 0.5;
+    height: 1px;
+    background: var(--color-line);
   }
 
   /* 空狀態 CTA */
@@ -770,6 +775,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
     myVoteThisWeek: null,
     sidebar: { scheduled: [], shipped: [] },
     sortBy: 'votes',    // 'votes' | 'newest'
+    expandedIds: new Set(), // 展開的 card id;collapsed by default
   };
 
   // ============================================================
@@ -940,26 +946,34 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
       displayed = byVotes;
     }
 
-    list.innerHTML = displayed.map(item => {
+    // 拼出 rows;votes 排序時插入「前 3 / 其他」分隔線(newest 排序時不插)
+    const showTopDivider = state.sortBy === 'votes';
+    let html = '';
+    let dividerInserted = false;
+
+    displayed.forEach(item => {
       const rank = rankById[item.id];
       const isVoted = state.myVoteThisWeek === item.id;
       const isInTop = rank <= TOP_N;
       const isBelowCut = rank > TOP_N;
+      const isExpanded = state.expandedIds.has(item.id);
       const gapToCut = isBelowCut ? Math.max(0, cutoffVotes - item.votes) : 0;
       const barWidth = maxVotes > 0 ? Math.max(2, (item.votes / maxVotes) * 100) : 0;
       const showNewBadge = isNewProposal(item);
 
-      const rankBadge = isInTop
-        ? `<span class="rank-badge rank-badge--${rank}">#${rank}</span>`
-        : '';
+      // 進入第 4 名時插入分隔線(只在 votes 排序下)
+      if (showTopDivider && isBelowCut && !dividerInserted) {
+        html += `<div class="top-divider">前 ${TOP_N}</div>`;
+        dividerInserted = true;
+      }
 
       const newBadge = showNewBadge
         ? `<span class="new-badge">New</span>`
         : '';
 
       const gapBadge = isBelowCut
-        ? `<span class="gap-badge">${gapToCut === 0 ? '平手' : `+${gapToCut + 1} 進前 ${TOP_N}`}</span>`
-        : '';
+        ? `<span class="gap-badge">${gapToCut === 0 ? '平手' : `+${gapToCut + 1}`}</span>`
+        : '<span></span>';  // 保持 grid 欄位佔位
 
       // Button 文字 + 狀態
       let buttonHtml;
@@ -971,37 +985,56 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwT7rtATWzPaQElJqhzhmwM
         buttonHtml = `<button class="vote-cta" data-vote-id="${item.id}">投票</button>`;
       }
 
-      return `
-        <div class="wishlist-card ${isVoted ? 'is-voted' : ''} ${isBelowCut ? 'is-below-cut' : ''}"
+      const descHtml = item.description
+        ? `<p class="wishlist-card__desc">${escapeHtml(item.description)}</p>`
+        : `<p class="wishlist-card__desc-empty">(無描述)</p>`;
+
+      html += `
+        <div class="wishlist-card ${isVoted ? 'is-voted' : ''} ${isBelowCut ? 'is-below-cut' : ''} ${isExpanded ? 'is-expanded' : ''}"
              data-id="${item.id}">
-          <div class="wishlist-card__votes">
-            <span class="wishlist-card__count">${item.votes}</span>
-            <span class="wishlist-card__label">votes</span>
+          <div class="wishlist-card__rank ${isInTop ? 'is-top' : ''}">#${rank}</div>
+          <div class="wishlist-card__count">${item.votes}</div>
+          <div class="wishlist-card__title">
+            <span class="wishlist-card__title-text">${escapeHtml(item.title)}</span>
+            ${newBadge}
           </div>
-          <div class="wishlist-card__body">
-            <div class="wishlist-card__title">
-              ${rankBadge}
-              <span>${escapeHtml(item.title)}</span>
-              ${newBadge}
-            </div>
-            ${item.description ? `<p class="wishlist-card__desc">${escapeHtml(item.description)}</p>` : ''}
+          ${gapBadge}
+          <div class="vote-bar">
+            <div class="vote-bar__fill" style="width: ${barWidth}%"></div>
           </div>
-          <div class="wishlist-card__action">
-            ${buttonHtml}
-          </div>
-          <div class="wishlist-card__bar-row">
-            ${gapBadge}
-            <div class="vote-bar">
-              <div class="vote-bar__fill" style="width: ${barWidth}%"></div>
-            </div>
+          ${buttonHtml}
+          <div class="wishlist-card__expand">
+            ${descHtml}
           </div>
         </div>
       `;
-    }).join('');
+    });
 
-    // 綁投票事件
+    list.innerHTML = html;
+
+    // 綁投票事件 — stopPropagation 防止觸發展開
     list.querySelectorAll('button[data-vote-id]').forEach(btn => {
-      btn.addEventListener('click', () => vote(btn.dataset.voteId));
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vote(btn.dataset.voteId);
+      });
+    });
+    // disabled 按鈕也擋掉冒泡,避免點到「本週已投」時意外展開
+    list.querySelectorAll('.vote-cta:disabled').forEach(btn => {
+      btn.addEventListener('click', (e) => e.stopPropagation());
+    });
+
+    // 綁整列點擊 → 切換展開
+    list.querySelectorAll('.wishlist-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.id;
+        if (state.expandedIds.has(id)) {
+          state.expandedIds.delete(id);
+        } else {
+          state.expandedIds.add(id);
+        }
+        render();
+      });
     });
   }
 
