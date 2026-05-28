@@ -98,14 +98,14 @@ export interface SkillMeta extends SkillFrontmatter {
    * SKILL.md 的 version: 字串實際變動的最後一次 commit 日期 ISO 8601。
    * - 用於「新版本」判定。
    * - 與 lastModified 的差別:typo / reference 補丁不算 version bump。
-   * - fallback:若無歷史(skill 剛建立或 git 撈不到) → 等於 firstPublished。
-   *   此時 hasBeenVersionBumped 為 false,前端用該 flag 判斷而非比對日期。
+   * - 從沒 bump 過(只有初始 commit)時 = null。下游必須先檢查
+   *   hasBeenVersionBumped flag,不要用日期間接判斷。
    */
-  versionBumpedAt: string;
+  versionBumpedAt: string | null;
   /**
    * 該 skill 是否曾經 bump 過 version(初始 commit 之後又改過 version 行)。
-   * 用於前端區分「新發布」vs「新版本」清單,避免間接靠
-   * `versionBumpedAt !== firstPublished` 判定。
+   * 用於前端區分「新發布」vs「新版本」清單。
+   * false 時 versionBumpedAt 必為 null。
    */
   hasBeenVersionBumped: boolean;
   /** Git commit hash（short）,對應 lastModified 那次 commit */
