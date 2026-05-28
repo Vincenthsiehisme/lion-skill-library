@@ -4,6 +4,7 @@
   "private": true,
   "description": "雄獅內部 Claude Skill 分發平台",
   "scripts": {
+    "prepare": "tsx scripts/prepare-release.ts",
     "validate": "tsx scripts/validate.ts",
     "build:zips": "tsx scripts/package-skills.ts",
     "build:catalog": "tsx scripts/build-catalog.ts",
