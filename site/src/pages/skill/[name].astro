@@ -46,6 +46,10 @@ const BASE = import.meta.env.BASE_URL;
 const renderedBody = renderMarkdown(skill.body, { refLinkPrefix: './ref/' });
 const toc = extractToc(renderedBody);
 
+// changelog 為自由格式 markdown,直接 render。
+// build-catalog 已剝掉開頭 # Changelog 標題,避免雙標題。
+const renderedChangelog = skill.changelog ? renderMarkdown(skill.changelog) : '';
+
 // 第一行 description 當 pitch
 const pitch = skill.description.split('\n')[0].trim();
 
@@ -184,6 +188,14 @@ const hasAtGlance =
             </li>
           ))}
         </ul>
+      </section>
+    )}
+
+    {/* ─────────────────────────────── Changelog ─────────────────────────────── */}
+    {renderedChangelog && (
+      <section class="changelog-section">
+        <h2 class="section-heading">Changelog</h2>
+        <article class="changelog-body" set:html={renderedChangelog}></article>
       </section>
     )}
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-28T21:20:58.151Z",
+  "generatedAt": "2026-05-28T21:31:24.139Z",
   "totalCount": 7,
   "skills": [
     {
@@ -16,7 +16,7 @@
       ],
       "zipFilename": "prd-writer-0.1.0.zip",
       "zipSize": 60315,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     },
     {
       "name": "skill-brain",
@@ -26,7 +26,7 @@
       "tags": [],
       "zipFilename": "skill-brain-0.1.0.zip",
       "zipSize": 11496,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     },
     {
       "name": "skill-create",
@@ -36,7 +36,7 @@
       "tags": [],
       "zipFilename": "skill-create-0.1.0.zip",
       "zipSize": 21736,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     },
     {
       "name": "skill-discovery",
@@ -46,7 +46,7 @@
       "tags": [],
       "zipFilename": "skill-discovery-0.1.0.zip",
       "zipSize": 9289,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     },
     {
       "name": "skill-review",
@@ -56,7 +56,7 @@
       "tags": [],
       "zipFilename": "skill-review-0.1.0.zip",
       "zipSize": 29668,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     },
     {
       "name": "skill-search",
@@ -66,7 +66,7 @@
       "tags": [],
       "zipFilename": "skill-search-0.1.0.zip",
       "zipSize": 11195,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     },
     {
       "name": "skill-summary",
@@ -76,7 +76,7 @@
       "tags": [],
       "zipFilename": "skill-summary-0.1.0.zip",
       "zipSize": 18129,
-      "lastModified": "2026-05-28T21:19:36+00:00"
+      "lastModified": "2026-05-28T21:21:01+00:00"
     }
   ]
 }
