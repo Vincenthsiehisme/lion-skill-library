@@ -297,6 +297,21 @@ function extractAtGlance(description: string, body: string): AtGlance {
   };
 }
 
+/**
+ * 讀一個 skill 的 CHANGELOG.md,回傳「不含開頭 `# Changelog` 標題」的整段 markdown。
+ * 沒有 CHANGELOG.md 回空字串(過渡期允許,CI 在 check-changelogs.ts 守門)。
+ *
+ * 為什麼剝掉第一行標題:前端在 skill 詳情頁本身就有 section 標題,
+ * 留 `# Changelog` 會出現雙標題。
+ */
+function readChangelog(skillFolder: string): string {
+  const path = join(SKILLS_DIR, skillFolder, 'CHANGELOG.md');
+  if (!existsSync(path)) return '';
+  const raw = readFileSync(path, 'utf-8');
+  // 剝掉第一個 H1(若存在),其餘原樣保留
+  return raw.replace(/^#\s+[^\n]*\n+/, '').trim();
+}
+
 function buildSkillMeta(folder: string): SkillMeta {
   const skillMdPath = join(SKILLS_DIR, folder, 'SKILL.md');
   const raw = readFileSync(skillMdPath, 'utf-8');
@@ -316,6 +331,7 @@ function buildSkillMeta(folder: string): SkillMeta {
   const body = parsed.content.trim();
   const references = readReferences(folder);
   const atGlance = extractAtGlance(fm.description, body);
+  const changelog = readChangelog(folder);
 
   return {
     ...fm,
@@ -329,6 +345,7 @@ function buildSkillMeta(folder: string): SkillMeta {
     commitHash,
     references,
     atGlance,
+    changelog,
   };
 }
 

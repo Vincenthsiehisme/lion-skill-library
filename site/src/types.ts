@@ -44,6 +44,11 @@ export interface SkillMeta {
   commitHash: string;
   references: SkillReference[];
   atGlance: AtGlance;
+  /**
+   * CHANGELOG.md 整段 markdown(不含 # Changelog 標題)。
+   * 沒 CHANGELOG.md 時為空字串。
+   */
+  changelog: string;
 }
 
 export interface Catalog {

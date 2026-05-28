@@ -114,4 +114,12 @@ export interface SkillMeta extends SkillFrontmatter {
   references: SkillReference[];
   /** 從 description 與 body 規則萃取的 At a glance 結構 */
   atGlance: AtGlance;
+  /**
+   * CHANGELOG.md 整段 markdown 內容(不含第一行 `# Changelog` 標題)。
+   * 沒有 CHANGELOG.md 則為空字串。
+   * 自由格式,前端直接 render 為 markdown,後端不解析每筆條目。
+   * 唯一機械契約:當前 version 必須在 CHANGELOG.md 出現
+   * (`## <version> -` 標題形式),由 check-changelogs.ts 在 CI 守門。
+   */
+  changelog: string;
 }
