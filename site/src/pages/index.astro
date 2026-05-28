@@ -99,23 +99,19 @@ const newReleases = skills
 
 const newReleaseNames = new Set(newReleases.map((s) => s.name));
 
-const newVersions = skills
+// 「最近更新」= lastModified 在窗口內、且不在新發布清單裡。
+// 不再分「新版本」獨立軌——bump 與否改用卡片內 badge 強度區分:
+//   - 窗口內 versionBumpedAt → 醒目 badge(顯示版號)
+//   - 否則 → 弱 badge(顯示「更新」)
+// 這樣語意只有兩種:新發布 vs 更新,使用者不用懂內部 convention。
+const recentUpdates = skills
   .filter(
-    (s): s is SkillMeta & { versionBumpedAt: string } =>
-      withinWindow(s.versionBumpedAt) &&
-      // 排除已在新發布清單的（避免同一個 skill 雙重出現）
-      !newReleaseNames.has(s.name) &&
-      // 必須真的有 bump 過 version（非僅初始 commit）。
-      // 用 schema 提供的 flag,而非間接比對日期 —
-      // 避免初始 commit 與後續 commit 時間戳極近時誤判。
-      // 也順帶把 versionBumpedAt narrow 成 string,讓下游 sort / 模板不用再防 null。
-      s.hasBeenVersionBumped &&
-      s.versionBumpedAt !== null,
+    (s) => withinWindow(s.lastModified) && !newReleaseNames.has(s.name),
   )
-  .sort((a, b) => (a.versionBumpedAt < b.versionBumpedAt ? 1 : -1))
+  .sort((a, b) => (a.lastModified < b.lastModified ? 1 : -1))
   .slice(0, RECENT_LIMIT);
 
-const showRecent = newReleases.length > 0 || newVersions.length > 0;
+const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
 ---
 
 <Layout>
@@ -236,18 +232,27 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
               </div>
             )}
 
-            {newVersions.length > 0 && (
+            {recentUpdates.length > 0 && (
               <div class="recent__group">
-                <div class="recent__group-label">新版本</div>
+                <div class="recent__group-label">最近更新</div>
                 <ul class="skill-grid recent__grid">
-                  {newVersions.map((s) => {
+                  {recentUpdates.map((s) => {
                     const shortDesc =
                       s.description.length > 180
                         ? s.description.slice(0, 180) + '…'
                         : s.description;
+                    // 窗口內有 bump version → 顯示版號醒目 badge
+                    // 否則 → 顯示「更新」弱 badge
+                    // 用「窗口內 bump」判定,不是「曾經 bump」——避免
+                    // 一個三個月前 bump 過的 skill 今天改 typo 就被亮版號 badge
+                    const recentlyBumped = withinWindow(s.versionBumpedAt);
                     return (
                       <li class="skill-card recent-card">
-                        <span class="recent-card__badge badge-update">v{s.version}</span>
+                        {recentlyBumped ? (
+                          <span class="recent-card__badge badge-update">v{s.version}</span>
+                        ) : (
+                          <span class="recent-card__badge badge-touch">更新</span>
+                        )}
                         <h2 class="skill-card__title">
                           <a href={`${BASE}skill/${s.name}`}>{s.name}</a>
                         </h2>
@@ -257,7 +262,7 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
                             {CATEGORY_LABELS[s.category]}
                           </span>
                           <span>v{s.version}</span>
-                          <span>{daysAgo(s.versionBumpedAt)}</span>
+                          <span>{daysAgo(s.lastModified)}</span>
                         </div>
                         <div class="skill-card__actions">
                           <span class="skill-card__version">
@@ -549,6 +554,11 @@ const showRecent = newReleases.length > 0 || newVersions.length > 0;
     background: transparent;
     color: var(--accent, #2563eb);
     border: 1px solid var(--accent, #2563eb);
+  }
+  .recent-card__badge.badge-touch {
+    background: transparent;
+    color: var(--text-muted, #888);
+    border: 1px solid var(--text-muted, #888);
   }
   /* 卡片標題避免被 badge 蓋到 */
   .recent-card .skill-card__title {

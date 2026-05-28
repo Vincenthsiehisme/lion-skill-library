@@ -39,6 +39,9 @@ jobs:
       - name: Validate skills
         run: npm run validate
 
+      - name: Check changelogs
+        run: npm run check:changelogs
+
       - name: Package skill zips
         run: npm run build:zips
 

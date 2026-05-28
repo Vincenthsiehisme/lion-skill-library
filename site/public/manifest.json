@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-28T21:31:24.139Z",
+  "totalCount": 7,
+  "skills": [
+    {
+      "name": "prd-writer",
+      "version": "0.1.0",
+      "category": "planning",
+      "description": "Use for structured product planning output: PRD drafting, user story breakdown, KPI/metrics definition, competitive analysis, or roadmap planning. Trigger on: 寫PRD, 需求文件, 拆user story, 定義KPI, 定義指標, 競品分析, roadmap, 產品規劃, feature spec, 寫需求, 對主管提案, 跨部門說明, 提案文件, 主管要看的 PRD.",
+      "tags": [
+        "prd",
+        "PM",
+        "product-management",
+        "opportunity"
+      ],
+      "zipFilename": "prd-writer-0.1.0.zip",
+      "zipSize": 60315,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    },
+    {
+      "name": "skill-brain",
+      "version": "0.1.0",
+      "category": "planning",
+      "description": "Skill 規劃階段的釐清顧問。當使用者想做一個新 skill、把某個重複工作流 skill 化、或描述了一個重複工作模式但沒說「skill」時觸發。產出輕量 intent 文件（problem + trigger + boundary）並掃描與既有 skill 的可能重疊。",
+      "tags": [],
+      "zipFilename": "skill-brain-0.1.0.zip",
+      "zipSize": 11496,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    },
+    {
+      "name": "skill-create",
+      "version": "0.1.0",
+      "category": "writing",
+      "description": "Skill 組裝器。把 intent + reference 組成 Anthropic 規範的 SKILL.md。",
+      "tags": [],
+      "zipFilename": "skill-create-0.1.0.zip",
+      "zipSize": 21736,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    },
+    {
+      "name": "skill-discovery",
+      "version": "0.1.0",
+      "category": "utility",
+      "description": "Use when the user explicitly asks for external references, Anthropic/GitHub examples, or best practices for Claude/agent skill design, or when internal skill-search/skill-brain has no precedent. Search L1/L2 first; return a screened URL list and handoff bundle only. Do not deep-read, compare, or synthesize sources.",
+      "tags": [],
+      "zipFilename": "skill-discovery-0.1.0.zip",
+      "zipSize": 9289,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    },
+    {
+      "name": "skill-review",
+      "version": "0.1.0",
+      "category": "review",
+      "description": "Skill 結構審查顧問。當使用者已寫好或修改 skill、需要 8-dim rubric 評分、想知道 skill 為何不觸發、輸出不穩定、或想跨比對既有 skill 庫找衝突時觸發。執行 (1) 機械檢查（行數、frontmatter、Gotchas）、(2) 8 維度語意審查、(3) 跨 skill 觸發詞衝突偵測，輸出結構化評審報告與改動建議。",
+      "tags": [],
+      "zipFilename": "skill-review-0.1.0.zip",
+      "zipSize": 29668,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    },
+    {
+      "name": "skill-search",
+      "version": "0.1.0",
+      "category": "utility",
+      "description": "Skill 範例搜尋與模式萃取顧問。**只在本機三層 skill 庫(user > examples > public)內搜尋**——當使用者在規劃或撰寫 skill 時缺乏範例參考、不確定某個段落該怎麼寫、想找類似 skill 的結構模式，或被 skill-brain / skill-create 主動呼叫補料時觸發。",
+      "tags": [],
+      "zipFilename": "skill-search-0.1.0.zip",
+      "zipSize": 11195,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    },
+    {
+      "name": "skill-summary",
+      "version": "0.1.0",
+      "category": "summary",
+      "description": "Skill 錯誤沉澱顧問。當使用者描述剛才用某個 skill 時踩到坑、skill 沒抓到該抓的事、輸出不如預期時觸發。把錯誤模式結構化（症狀/正確做法/為什麼），產生可貼入該 skill Gotchas section 的草稿；若判定為重要錯誤，同步產出可貼到 GitHub `claude-evolve` repo 的 log 條目供 skill-evolve 做趨勢診斷。",
+      "tags": [],
+      "zipFilename": "skill-summary-0.1.0.zip",
+      "zipSize": 18129,
+      "lastModified": "2026-05-28T21:21:01+00:00"
+    }
+  ]
+}
