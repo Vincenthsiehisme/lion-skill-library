@@ -29,6 +29,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { stdin as input, stdout as output } from 'node:process';
 import matter from 'gray-matter';
+import { SkillFrontmatterSchema } from './schema.js';
 
 const SKILLS_DIR = join(process.cwd(), 'skills');
 const STAGE_DIR = join(process.cwd(), '.lion-stage');
@@ -61,10 +62,14 @@ function safeExec(cmd: string): string {
 
 /** 確認 BASE_REF 存在,不存在則 fallback 到首次 commit */
 function resolveBaseRef(): string | null {
-  const exists = safeExec(`git rev-parse --verify ${BASE_REF} 2>/dev/null`);
+  // 不在 cmd 字串裡寫 `2>/dev/null`——那是 sh 語法,在 Windows PowerShell
+  // 會被當成檔名導致整個指令失敗(safeExec 接 stdio:'pipe' 已經吞掉 stderr,
+  // 也不需要 redirect)。
+  const exists = safeExec(`git rev-parse --verify ${BASE_REF}`);
   if (exists) return BASE_REF;
 
   console.log(`⚠ ${BASE_REF} 不存在(首次 push?),改用首次 commit 作為比較基準`);
+  console.log(`  (如果你確定 ${BASE_REF} 存在,試試先跑 \`git fetch origin\` 再重試)`);
   const firstCommit = safeExec('git rev-list --max-parents=0 HEAD');
   if (!firstCommit) {
     console.error('✗ 無法定位任何 commit,中止');
@@ -77,24 +82,58 @@ function resolveBaseRef(): string | null {
 function detectChangedSkills(baseRef: string): SkillDiff[] {
   // git diff 包含已 staged + working tree 跟 base 的差
   const diffOutput = safeExec(`git diff --numstat ${baseRef} -- skills/`);
-  if (!diffOutput) return [];
 
-  const skillData = new Map<string, { files: Set<string>; added: number; removed: number }>();
+  // 額外:抓 untracked 檔(全新 skill,還沒 git add)。
+  // git diff 不含 untracked,沒這段新 skill 完全偵測不到。
+  // --others 列 untracked,--exclude-standard 套用 .gitignore。
+  const untrackedOutput = safeExec(`git ls-files --others --exclude-standard skills/`);
+  const untrackedFiles = untrackedOutput
+    ? untrackedOutput.split('\n').filter(Boolean)
+    : [];
 
-  for (const line of diffOutput.split('\n')) {
-    const [addedStr, removedStr, path] = line.split('\t');
-    // 二進位檔會回 "-" "-",當 0 處理
-    const added = addedStr === '-' ? 0 : parseInt(addedStr, 10) || 0;
-    const removed = removedStr === '-' ? 0 : parseInt(removedStr, 10) || 0;
+  if (!diffOutput && untrackedFiles.length === 0) return [];
+
+  const skillData = new Map<string, { files: Set<string>; added: number; removed: number; hasUntracked: boolean }>();
+
+  // 1. 已 tracked(modified / staged)的改動
+  if (diffOutput) {
+    for (const line of diffOutput.split('\n')) {
+      const [addedStr, removedStr, path] = line.split('\t');
+      // 二進位檔會回 "-" "-",當 0 處理
+      const added = addedStr === '-' ? 0 : parseInt(addedStr, 10) || 0;
+      const removed = removedStr === '-' ? 0 : parseInt(removedStr, 10) || 0;
+      const match = path.match(/^skills\/([^/]+)\//);
+      if (!match) continue;
+      const skillName = match[1];
+      if (RESERVED.includes(skillName)) continue;
+
+      const entry = skillData.get(skillName) ?? { files: new Set(), added: 0, removed: 0, hasUntracked: false };
+      entry.files.add(path);
+      entry.added += added;
+      entry.removed += removed;
+      skillData.set(skillName, entry);
+    }
+  }
+
+  // 2. untracked 的新檔(用估算行數,因為沒進 git index)
+  for (const path of untrackedFiles) {
     const match = path.match(/^skills\/([^/]+)\//);
     if (!match) continue;
     const skillName = match[1];
     if (RESERVED.includes(skillName)) continue;
 
-    const entry = skillData.get(skillName) ?? { files: new Set(), added: 0, removed: 0 };
+    // 嘗試估算行數;讀不到就當 0
+    let lineCount = 0;
+    try {
+      lineCount = readFileSync(path, 'utf-8').split('\n').length;
+    } catch {
+      lineCount = 0;
+    }
+
+    const entry = skillData.get(skillName) ?? { files: new Set(), added: 0, removed: 0, hasUntracked: false };
     entry.files.add(path);
-    entry.added += added;
-    entry.removed += removed;
+    entry.added += lineCount;
+    entry.hasUntracked = true;
     skillData.set(skillName, entry);
   }
 
@@ -105,8 +144,11 @@ function detectChangedSkills(baseRef: string): SkillDiff[] {
 
     const currentVersion = readFrontmatterVersion(skillMdPath);
     const baseVersion = safeExec(
-      `git show ${baseRef}:skills/${name}/SKILL.md 2>/dev/null`,
+      `git show ${baseRef}:skills/${name}/SKILL.md`,
     );
+    // 新 skill 兩種型態都算 'new':
+    //   a) base ref 沒有該 skill(從來沒上過)
+    //   b) 完全是 untracked(本次才加)
     const status: 'new' | 'modified' = baseVersion ? 'modified' : 'new';
 
     // 判斷 body / description 是否動過
@@ -289,6 +331,38 @@ async function main(): Promise<void> {
     console.log(`  狀態:${diff.status === 'new' ? '新發布' : '既有(當前 v' + diff.currentVersion + ')'}`);
     console.log(`  改動:+${diff.linesAdded} -${diff.linesRemoved} 行,${diff.filesChanged.length} 個檔案`);
     for (const f of diff.filesChanged) console.log(`    - ${f}`);
+
+    // 提早 validate frontmatter — 缺 required 欄位(尤其 category)現在就警告,
+    // 不要拖到 CI 才被 validate.ts 擋。對「新發布」狀態尤其重要。
+    //
+    // 例外:新 skill 的 version 欄位,MAINTAINER 鐵律 1 不允許作者自己寫,
+    // 所以這裡對 version-only 的問題在「新發布」狀態下放行(prepare 等下會寫)。
+    const skillMdPath = join(SKILLS_DIR, diff.name, 'SKILL.md');
+    const fmRaw = matter(readFileSync(skillMdPath, 'utf-8')).data;
+    const fmCheck = SkillFrontmatterSchema.safeParse(fmRaw);
+    if (!fmCheck.success) {
+      // 過濾:新 skill 的 version 問題容忍
+      const blockingIssues = fmCheck.error.issues.filter((issue) => {
+        if (diff.status === 'new' && issue.path[0] === 'version') return false;
+        return true;
+      });
+
+      if (blockingIssues.length > 0) {
+        console.log(`  ⚠ frontmatter 有問題,push 上去會被 CI 擋:`);
+        for (const issue of blockingIssues) {
+          const field = issue.path.join('.');
+          if (field === 'category') {
+            console.log(`      └─ frontmatter.category: ${issue.message}`);
+            console.log(`         合法值:planning / writing / review / summary / data / utility / domain`);
+          } else {
+            console.log(`      └─ frontmatter.${field}: ${issue.message}`);
+          }
+        }
+        console.log(`  → 先補完 frontmatter 再跑 prepare,本輪跳過此 skill\n`);
+        skipped++;
+        continue;
+      }
+    }
 
     // 若 CHANGELOG.md 已有當前 version 段落,代表使用者之前手動補過,跳過
     if (hasChangelogEntry(diff.name, diff.currentVersion) && diff.status === 'modified') {
