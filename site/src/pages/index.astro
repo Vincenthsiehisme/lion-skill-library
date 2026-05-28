@@ -67,7 +67,7 @@ const RECENT_LIMIT = 5;
 const now = Date.now();
 const windowMs = RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
-function withinWindow(iso: string): boolean {
+function withinWindow(iso: string | null): boolean {
   if (!iso) return false;
   const t = new Date(iso).getTime();
   return Number.isFinite(t) && now - t <= windowMs;
@@ -101,14 +101,16 @@ const newReleaseNames = new Set(newReleases.map((s) => s.name));
 
 const newVersions = skills
   .filter(
-    (s) =>
+    (s): s is SkillMeta & { versionBumpedAt: string } =>
       withinWindow(s.versionBumpedAt) &&
       // 排除已在新發布清單的（避免同一個 skill 雙重出現）
       !newReleaseNames.has(s.name) &&
       // 必須真的有 bump 過 version（非僅初始 commit）。
       // 用 schema 提供的 flag,而非間接比對日期 —
       // 避免初始 commit 與後續 commit 時間戳極近時誤判。
-      s.hasBeenVersionBumped,
+      // 也順帶把 versionBumpedAt narrow 成 string,讓下游 sort / 模板不用再防 null。
+      s.hasBeenVersionBumped &&
+      s.versionBumpedAt !== null,
   )
   .sort((a, b) => (a.versionBumpedAt < b.versionBumpedAt ? 1 : -1))
   .slice(0, RECENT_LIMIT);
