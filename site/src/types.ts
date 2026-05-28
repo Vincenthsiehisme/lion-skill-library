@@ -30,12 +30,14 @@ export interface SkillMeta {
   firstPublished: string;
   /**
    * version: 字串實際變動的最後一次 commit 日期 ISO 8601 — 用於「新版本」判定。
-   * 若從未 bump 過(hasBeenVersionBumped=false),此欄位 fallback 到 firstPublished。
+   * 從沒 bump 過(hasBeenVersionBumped=false)時 = null。
+   * 下游必須先檢查 flag,不要用日期間接判斷。
    */
-  versionBumpedAt: string;
+  versionBumpedAt: string | null;
   /**
    * 該 skill 是否曾經 bump 過 version。
-   * 前端用這個 flag 而非比對 versionBumpedAt vs firstPublished,語意更清楚。
+   * 前端用這個 flag 而非比對日期,語意更清楚。
+   * false 時 versionBumpedAt 必為 null。
    */
   hasBeenVersionBumped: boolean;
   /** Git commit hash(short),對應 lastModified 那次 commit */
