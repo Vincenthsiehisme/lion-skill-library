@@ -6,6 +6,7 @@
   "scripts": {
     "prepare": "tsx scripts/prepare-release.ts",
     "validate": "tsx scripts/validate.ts",
+    "check:changelogs": "tsx scripts/check-changelogs.ts",
     "build:zips": "tsx scripts/package-skills.ts",
     "build:catalog": "tsx scripts/build-catalog.ts",
     "build:site": "cd site && npm run build",
