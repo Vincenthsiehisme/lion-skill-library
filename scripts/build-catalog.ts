@@ -84,27 +84,87 @@ function getGitInfo(skillFolder: string): {
 }
 
 /**
- * 撈 SKILL.md 的 `version:` 那行最後一次「實際變動」的 commit 日期。
+ * 撈 SKILL.md 的 `version:` 字串最後一次「實際變動」的 commit 日期。
  *
- * 用 `git log -L /^version:/,+1:<file>` 追蹤該行歷史,git 會自動把
- * 「沒動到 version 行的 commit」濾掉(像是改 description / 補 reference)。
- * -s 抑制 diff 輸出,只剩日期。第一筆 = 最新一次該行變動。
+ * 為什麼不用 `git log -L`:該指令在 -s + --format=%cI 組合下的輸出格式
+ * 不穩定,初始 commit 也會被當成一筆變動,導致從沒 bump 過的 skill 被
+ * 誤判為「最近 bump 過」。改用最直接的方法 — 逐個 commit 抓 frontmatter
+ * 的 version 值,從新到舊比對,找到第一個「跟前一個 commit 不一樣」
+ * 的點,那就是最近一次 bump。
  *
- * 回傳 null 表示:從沒 bump 過 / 還沒 commit / 撈不到歷史。
- * 呼叫端用 firstPublished 當 fallback,並另外記 hasBeenVersionBumped flag。
+ * 演算法:
+ *   1. 撈所有改過該檔的 commit (新→舊)
+ *   2. 依序對每個 commit 跑 `git show <hash>:<file>` 抓內容,parse 出 version
+ *   3. 從新到舊比對,當 commit[i].version !== commit[i+1].version,
+ *      commit[i].date 就是 bump 點(該值「變成現在這樣」的時間)
+ *   4. 從頭到尾沒變化 = 從沒 bump 過 = return null
+ *
+ * 邊界:
+ *   - 只有 1 個 commit:不可能 bump,return null
+ *   - 中間某個 commit 抓不到檔(rename / 暫刪):跳過,繼續比下一個
+ *   - version 行 parse 不出:該 commit 視為 version = ''(會跟下個比)
+ *   - git 完全失敗(不在 repo 內):catch 住,return null
  */
 function getVersionBumpedAt(skillFolder: string): string | null {
   const filePath = join('skills', skillFolder, 'SKILL.md');
   try {
-    const out = execSync(
-      `git log -L '/^version:/,+1:${filePath}' -s --format=%cI`,
+    // 撈所有改過該檔的 commit。--follow 處理 rename。
+    // 格式:<hash>\t<iso-date>,一行一筆,新→舊。
+    const log = execSync(
+      `git log --format=%H%x09%cI --follow -- "${filePath}"`,
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] },
     ).trim();
-    const lines = out.split('\n').filter((l) => /^\d{4}-/.test(l));
-    // git -L 的輸出:從新到舊。如果只有一筆 = 初始 commit,沒 bump 過。
-    // 兩筆以上才算「真的有 bump」過。
-    if (lines.length <= 1) return null;
-    return lines[0];
+    if (!log) return null;
+
+    const commits = log
+      .split('\n')
+      .map((line) => {
+        const [hash, date] = line.split('\t');
+        return { hash, date };
+      })
+      .filter((c) => c.hash && c.date);
+
+    if (commits.length <= 1) return null;
+
+    // 對每個 commit 抓當下的 version 字串。抓不到就回 null(視為「不可比」)。
+    const versionAt = (hash: string): string | null => {
+      try {
+        const content = execSync(`git show ${hash}:"${filePath}"`, {
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'ignore'],
+        });
+        const m = content.match(/^version:\s*['"]?([^'"\n]+?)['"]?\s*$/m);
+        return m?.[1].trim() ?? '';
+      } catch {
+        return null;
+      }
+    };
+
+    // 從新到舊掃,找到第一個「跟更舊那筆 version 不同」的 commit。
+    // 抓不到值(null)的 commit 視為斷點,跳過用下一個非 null 來比。
+    let i = 0;
+    while (i < commits.length) {
+      const current = versionAt(commits[i].hash);
+      if (current === null) {
+        i++;
+        continue;
+      }
+      // 找下一個能抓到 version 的更舊 commit
+      let j = i + 1;
+      while (j < commits.length && versionAt(commits[j].hash) === null) j++;
+      if (j >= commits.length) {
+        // 沒有更舊的可比 = current 是最早的可比 commit = 沒 bump 過
+        return null;
+      }
+      const older = versionAt(commits[j].hash);
+      if (current !== older) {
+        // commits[i].date 是「version 變成 current 那次的 commit」= bump 點
+        return commits[i].date;
+      }
+      // 一樣,往下找
+      i = j;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -250,7 +310,8 @@ function buildSkillMeta(folder: string): SkillMeta {
   const { lastModified, firstPublished, commitHash } = getGitInfo(folder);
   const bumpedAt = getVersionBumpedAt(folder);
   const hasBeenVersionBumped = bumpedAt !== null;
-  const versionBumpedAt = bumpedAt ?? firstPublished;
+  // 沒 bump 過時保持 null。讓下游必須先檢查 flag,避免靜默用錯日期。
+  const versionBumpedAt = bumpedAt;
 
   const body = parsed.content.trim();
   const references = readReferences(folder);
