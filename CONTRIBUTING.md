@@ -27,7 +27,6 @@ description: |                    # 必填,給 Claude 看的觸發條件
   DO NOT trigger for: 已拍板的小功能(用 prd-spec)、純技術架構討論。
 version: 0.10.2                   # 必填,semver
 category: planning                # 必填,見下方分類列表
-group: pm-workflow                # 建議,見下方群組列表
 license: MIT                      # 可選,預設 MIT
 author: Vt                        # 可選
 tags:                             # 可選,多個關鍵字
@@ -35,9 +34,6 @@ tags:                             # 可選,多個關鍵字
   - documentation
 related:                          # 可選,其他 skill 名稱
   - skill-brain
-feeds_into:                       # 可選,我的輸出餵給誰
-  - critical-reviewer
-consumes_from: []                 # 可選,我的輸入來自誰
 ---
 ```
 
@@ -50,16 +46,10 @@ consumes_from: []                 # 可選,我的輸入來自誰
 | `version` | semver(`0.1.0` 這種格式) |
 | `category` | 從下方枚舉選一個 |
 
-### 兩個分類軸:`category` vs `group`
+### 分類軸:`category`
 
-`category` 與 `group` 同時存在但描述不同的事:
-
-- **`category`** 描述「這個 skill 在做什麼類型的事」(planning / writing / review …)。
-  屬於工作性質分類,用於頂部 filter bar。
-- **`group`** 描述「這個 skill 跟哪些 skill 是一夥的」(skill-meta / pm-workflow …)。
-  屬於家族分類,用於首頁分組區塊。同一 group 內常見 pipeline 關係。
-
-一個 skill **同時有一個 category 跟一個 group**。
+`category` 描述「這個 skill 在做什麼類型的事」(planning / writing / review …),
+屬於工作性質分類,用於頂部 filter bar。一個 skill 有且只有一個 `category`。
 
 #### category 枚舉值
 
@@ -73,37 +63,9 @@ consumes_from: []                 # 可選,我的輸入來自誰
 | `utility` | 工具 | caveman, zoom-out |
 | `domain` | 領域 | 雄獅特定(暫不公開上架) |
 
-#### group 枚舉值
-
-| group | 標籤 | 包含什麼 |
-|---|---|---|
-| `skill-meta` | Skill 元工具 | 規劃、寫、審、沉澱 skill 本身的工具 |
-| `pm-workflow` | PM 工作流 | PRD、審查、派工、故事拆解 |
-| `data-pipeline` | 資料 pipeline | 清整、整形、檢定、解讀、視覺化 |
-| `lion-schema` | 雄獅資料知識 | 資料庫 schema 與 API 對照 |
-| `lion-system` | 雄獅系統架構 | 系統架構顧問與故障診斷 |
-| `personal-style` | 個人風格資產 | 個人偏好、視覺、輸出風格 |
-| `marketing-seo` | 行銷與 SEO | 行銷 context、SEO 體檢、價格帶 |
-| `specialty` | 專項工具 | 不屬於既有 pipeline 的單兵 skill |
-
-不填 `group` 會 fallback 到 `specialty`,build 時 lint 印 warning。
-要新增 category 或 group:同步更新 `scripts/schema.ts`、`site/src/types.ts`、
-`site/src/pages/index.astro` 的 `GROUP_META`(三處)。
-
-### Pipeline 關係:`feeds_into` 與 `consumes_from`
-
-如果你的 skill 跟其他 skill 有「我的輸出餵給它」或「我吃它的輸出」的關係,
-在 frontmatter 宣告。內容是 skill `name`(陣列)。
-
-```yaml
-feeds_into:
-  - critical-reviewer    # 我寫完 PRD,常餵給 critical-reviewer 審
-consumes_from:
-  - skill-brain          # 我吃 skill-brain 的 intent 產出
-```
-
-build 時會檢查對稱性:如果 A 寫了 `feeds_into: [B]` 但 B 沒寫
-`consumes_from: [A]`,build-catalog 會印 warning(不會 fail)。
+要新增 category:同步更新 `scripts/schema.ts` 的 `CATEGORIES` 與 `CATEGORY_LABELS`、
+`site/src/types.ts` 的 `SkillMeta.category` union,以及 `site/src/pages/index.astro`
+與 `site/src/pages/skill/[name].astro` 各自的 `CATEGORY_LABELS`。
 
 ## Description 撰寫原則
 
@@ -176,10 +138,6 @@ related:
 ```
 
 網站會在卡片上提示「相依:skill-brain」,使用者就知道要一起裝。
-`related` 與 `feeds_into / consumes_from` 是不同的關係:
-
-- `related`:廣義「一起裝可能更好用」
-- `feeds_into / consumes_from`:明確的 pipeline 上下游
 
 ## 上架流程
 
@@ -198,7 +156,7 @@ git push
 # 4. GitHub Actions 會自動:
 #    - 跑 validate(frontmatter 格式、必填欄位)
 #    - 為每個 skill 打 zip
-#    - 重建 catalog(含 atGlance / pipeline 對稱性 lint)
+#    - 重建 catalog(含 atGlance 結構化抽取)
 #    - 部署網站
 ```
 
