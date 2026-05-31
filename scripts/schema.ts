@@ -43,7 +43,7 @@ export const SkillFrontmatterSchema = z.object({
   author: z.string().optional(),
   tags: z.array(z.string()).optional().default([]),
   related: z.array(z.string()).optional().default([]),
-});
+}).strict();
 
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
 

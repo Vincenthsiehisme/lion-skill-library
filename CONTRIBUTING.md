@@ -28,7 +28,7 @@ push 後 GitHub Actions 自動部署
 
 ## 最低交付格式
 
-別人交給 maintainer 的 skill，最低只需要：
+別人交給 maintainer 的 skill，最低只需要一個 `SKILL.md`。可以是資料夾，也可以直接是一個 markdown 檔案：
 
 ```text
 some-skill/
@@ -37,9 +37,13 @@ some-skill/
     └── optional.md
 ```
 
-其中只有 `SKILL.md` 必須存在。
+或：
 
-`references/`、`scripts/`、`assets/` 都是可選。
+```text
+SKILL.md
+```
+
+`references/`、`scripts/`、`assets/` 都是可選。來源 frontmatter 可以不完整，`intake` 會標準化成 repo 支援的最小欄位。
 
 ## Maintainer 上架流程
 
@@ -162,16 +166,17 @@ git push
 
 `npm run intake` 負責：
 
-- 找 `SKILL.md` 或 `skill.md`
-- 正規化 skill name 成 lowercase kebab-case
-- 確保資料夾名稱與 frontmatter `name` 一致
-- 補 `version: 0.1.0`
-- 補 `license: MIT`
-- 補 `category`
-- 正規化 `tags`
-- 正規化 `related`
-- 保留 `references/`、`scripts/`、`assets/` 等補充資料
-- 建立空的 `CHANGELOG.md` shell，正式條目交給 `release:apply`
+- 接收來源資料夾或單一 `.md` 檔案
+- 找 `SKILL.md` / `skill.md`，或直接使用傳入的 `.md` 檔案
+- 正規化 skill name 成 lowercase kebab-case，並確保資料夾名稱與 frontmatter `name` 一致
+- 正規化 `category`：支援合法值、常見英文別名與中文別名；無法判斷時預設 `utility` 並輸出 warning
+- 正規化 `version`：支援 `v1.2.3`、內嵌 semver、`1.2` → `1.2.0`；既有 skill 缺 version 時沿用線上版本，否則預設 `0.1.0`
+- 補 `license: MIT`，既有 skill 缺 license 時沿用線上值
+- 正規化 `tags`：支援 array、逗號、分號、換行、中文頓號分隔
+- 正規化 `related`：轉為 skill name 可用的 lowercase kebab-case
+- 移除 repo 不支援的 frontmatter 欄位，只保留 `name` / `description` / `version` / `category` / `license` / `author` / `tags` / `related`
+- 保留來源資料夾中的 `references/`、`scripts/`、`assets/` 等補充資料
+- 處理 `CHANGELOG.md`：來源有就複製；來源缺但既有 skill 已有就沿用既有；兩邊都沒有才建立 shell
 - 匯入後執行 `npm run validate`
 
 `intake` 不負責：
@@ -179,7 +184,7 @@ git push
 - 判斷 skill 內容是否合理
 - 自動改寫 skill 本文
 - 寫正式 CHANGELOG 條目
-- 幫既有 skill 改版
+- 判斷內容變更應該 major / minor / patch
 - git add / commit / push
 
 ## release:plan 做什麼？
@@ -303,6 +308,8 @@ related:
 | `description` | 給 Claude 看的觸發條件，至少 20 字 |
 | `version` | semver，例如 `0.1.0` |
 | `category` | 從下方枚舉選一個 |
+
+frontmatter 採 strict schema。除了下列必填 / 可選欄位以外，其它欄位都不允許留在正式 `SKILL.md`。外部交付的 `schema_version`、`updated`、`group`、`feeds_into`、`consumes_from` 等欄位會由 `intake` 移除；若手動放進 `skills/`，`npm run validate` 會失敗。
 
 ### 可選欄位
 

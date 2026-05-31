@@ -83,7 +83,7 @@ mkdir incoming
 Copy-Item -Recurse <source-folder> incoming\some-skill
 ```
 
-作者交付的最低格式：
+作者交付的最低格式可以是一個資料夾，也可以只有一份 `SKILL.md`：
 
 ```text
 some-skill/
@@ -92,7 +92,13 @@ some-skill/
     └── optional.md
 ```
 
-作者不需要提供 CHANGELOG，也不需要懂正式上架規則。
+或：
+
+```text
+SKILL.md
+```
+
+作者不需要提供 CHANGELOG，也不需要懂正式上架規則。若來源缺 `CHANGELOG.md`，但 `skills/<name>/CHANGELOG.md` 已存在，`intake --force` 會沿用既有 changelog。
 
 ### 3. dry run
 
@@ -119,9 +125,10 @@ npm run intake -- .\incoming\some-skill --category review
 `intake` 會：
 
 ```text
-補 name / version / category / license / tags / related
+正規化 name / version / category / license / tags / related
+移除非標準 frontmatter 欄位
 搬到 skills/<name>/
-建立空 CHANGELOG.md shell
+CHANGELOG.md 來源有就複製；來源缺但既有已存在就沿用；否則建立 shell
 跑 validate
 ```
 
@@ -380,7 +387,8 @@ push 後去 Actions 看紅色 step。
 | Validate skills | `frontmatter.category` | SKILL.md frontmatter 補合法 category |
 | Validate skills | `frontmatter.version` | version 必須是 `X.Y.Z` 三段純數字 |
 | Validate skills | `related: "X" does not exist` | 修正或移除 related |
-| Validate skills | `description still contains TODO placeholder` | intake 只補了 TODO，需要回頭寫正式 description |
+| Validate skills | `description still contains TODO placeholder` | 手動寫入了 TODO 佔位，需改成正式 description |
+| Validate skills | `Unrecognized key(s) in object` | frontmatter 有非標準欄位；請跑 intake 標準化或移除該欄位 |
 | Validate skills | `references/... must be a .md file` | references 底下只放 markdown；其他資源放 assets |
 
 ---

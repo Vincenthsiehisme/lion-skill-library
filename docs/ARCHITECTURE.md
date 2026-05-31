@@ -52,7 +52,7 @@
 
 ```
 scripts/
-├── schema.ts            ← 共用 Zod schema(category / group / pipeline 欄位定義)
+├── schema.ts            ← 共用 Zod schema(category 等欄位定義)
 ├── validate.ts          ← 驗證所有 skill frontmatter 格式
 ├── package-skills.ts    ← 把每個 skill 打成 zip
 └── build-catalog.ts     ← 產生 skills.generated.json + manifest.json
@@ -101,19 +101,17 @@ prd-writer-0.10.2.zip
       "description": "...",
       "version": "0.10.2",
       "category": "planning",
-      "group": "pm-workflow",
       "license": "MIT",
       "author": "Vt",
       "tags": ["product", "documentation"],
       "related": ["skill-brain"],
-      "feeds_into": ["critical-reviewer"],
-      "consumes_from": ["skill-brain"],
       "body": "...(SKILL.md 全文 minus frontmatter)...",
       "zipFilename": "prd-writer-0.10.2.zip",
       "zipSize": 12345,
       "lastModified": "2026-05-24T08:00:00+00:00",
       "firstPublished": "2026-04-01T08:00:00+00:00",
       "versionBumpedAt": "2026-05-20T08:00:00+00:00",
+      "hasBeenVersionBumped": true,
       "commitHash": "a1b2c3d",
       "references": [
         {
@@ -134,6 +132,9 @@ prd-writer-0.10.2.zip
 }
 ```
 
+`hasBeenVersionBumped` 為 `false` 時,`versionBumpedAt` 必為 `null` —
+下游(首頁「新版本」清單)必須先檢查 flag,不要用日期間接判斷。
+
 Astro 在 build 時 import 這份 JSON,所有頁面都是 SSG(無 server runtime)。
 
 ### 對外公開的 manifest.json
@@ -143,7 +144,7 @@ Astro 在 build 時 import 這份 JSON,所有頁面都是 SSG(無 server runtime
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedAt": "...",
   "totalCount": 3,
   "skills": [
@@ -151,7 +152,6 @@ Astro 在 build 時 import 這份 JSON,所有頁面都是 SSG(無 server runtime
       "name": "prd-writer",
       "version": "0.10.2",
       "category": "planning",
-      "group": "pm-workflow",
       "description": "...(只取第一行)...",
       "tags": ["product"],
       "zipFilename": "prd-writer-0.10.2.zip",
@@ -163,43 +163,17 @@ Astro 在 build 時 import 這份 JSON,所有頁面都是 SSG(無 server runtime
 ```
 
 這個檔案是 Lion Skill Library 的「公開 API」 — installer 腳本固定吃它,
-所以 `schemaVersion: 1` 保留向後相容性。
+`schemaVersion` 用來標記格式版本以保留向後相容性(目前為 `2`)。
 
-## category vs group:兩個分類軸
+## category:分類軸
 
-每個 skill 同時掛在兩個分類軸下:
+每個 skill 掛在一個 `category` 下(7 種,工作類型分類):
+planning / writing / review / summary / data / utility / domain。
+用於 index 頁頂端 filter bar。
 
-- **category**(7 種):工作類型分類。planning / writing / review / summary / data / utility / domain。
-  用於 index 頁頂端 filter bar。
-- **group**(8 種):家族分類。skill-meta / pm-workflow / data-pipeline / lion-schema /
-  lion-system / personal-style / marketing-seo / specialty。
-  用於 index 頁的分組區塊。
-
-GROUP_META(每個 group 的 label / blurb / order)定義在三處,**要同步修改**:
-
-1. `scripts/schema.ts`(build 時用)
-2. `site/src/types.ts`(TypeScript 型別)
-3. `site/src/pages/index.astro`(渲染時用)
-
-沒填 `group` 的 skill fallback 到 `specialty`,build-catalog 印 warning 但不 fail。
-
-## Pipeline 關係與對稱性 lint
-
-frontmatter 可以宣告:
-
-```yaml
-feeds_into:    [critical-reviewer]   # 我的輸出餵給誰
-consumes_from: [skill-brain]         # 我的輸入來自誰
-```
-
-build-catalog 跑完讀檔後會 lint:
-
-- `feeds_into` 指向不存在的 skill → warning(`unknown-skill`)
-- A 寫了 `feeds_into: [B]` 但 B 沒寫 `consumes_from: [A]` → warning(`asymmetric`)
-- `consumes_from` 同樣對稱性檢查
-
-全部只印 warning 不 fail,所以新 skill 上架不會因為對方還沒同步就被擋掉。
-但 lint output 在 CI log 上看得到,定期清理。
+新增 category 要同步更新:`scripts/schema.ts` 的 `CATEGORIES` 與 `CATEGORY_LABELS`、
+`site/src/types.ts` 的 `SkillMeta.category` union,以及 `site/src/pages/index.astro`
+與 `site/src/pages/skill/[name].astro` 各自的 `CATEGORY_LABELS`。
 
 ## At a glance 自動抽取
 
@@ -295,5 +269,4 @@ git push
 **將來可能加**:
 
 - 全文搜尋(用 Fuse.js,客戶端)
-- skill 之間的相依拓撲視覺化(用 `feeds_into / consumes_from` 資料畫圖)
 - 安裝統計(需要分析 GitHub Pages access log 或加 endpoint)

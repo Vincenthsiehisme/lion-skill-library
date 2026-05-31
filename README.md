@@ -28,7 +28,7 @@ Windows PowerShell 或想手動下載 zip，請看 [docs/INSTALL.md](docs/INSTAL
 完整流程分四層：
 
 ```text
-intake          收件、命名、補基本 frontmatter、搬入 skills/
+intake          收件、正規化 frontmatter、承接/建立 CHANGELOG、搬入 skills/
 release:plan    掃描變更，產生 AI 可讀的 release draft
 release:apply   讀 AI 整理後的 JSON，自動更新 version + CHANGELOG
 build / CI       validate、check changelogs、打包 zip、重建 catalog、部署網站
@@ -40,6 +40,7 @@ build / CI       validate、check changelogs、打包 zip、重建 catalog、部
 # 1. 把別人交來的 skill 放到 incoming/
 mkdir -p incoming
 cp -r /path/to/submitted-skill incoming/
+# 也可以直接使用單一 SKILL.md 檔案
 
 # 2. 先 dry run，確認會被整理成什麼
 npm run intake -- ./incoming/submitted-skill --category review --dry-run
