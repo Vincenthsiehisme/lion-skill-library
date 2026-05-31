@@ -14,7 +14,7 @@
 
 import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, posix } from 'node:path';
 import matter from 'gray-matter';
 import {
   SkillFrontmatterSchema,
@@ -54,17 +54,19 @@ function getGitInfo(skillFolder: string): {
   firstPublished: string;
   commitHash: string;
 } {
-  const path = join('skills', skillFolder);
+  // git 的 pathspec 使用 repo 內部路徑，固定用 POSIX-style slash；
+  // 不可使用 path.join，避免 Windows 產生反斜線導致 git 查不到路徑。
+  const gitPath = posix.join('skills', skillFolder);
   try {
-    const lastDate = execSync(`git log -1 --format=%cI -- "${path}"`, {
+    const lastDate = execSync(`git log -1 --format=%cI -- "${gitPath}"`, {
       encoding: 'utf-8',
     }).trim();
-    const hash = execSync(`git log -1 --format=%h -- "${path}"`, {
+    const hash = execSync(`git log -1 --format=%h -- "${gitPath}"`, {
       encoding: 'utf-8',
     }).trim();
     // 撈所有 commit 日期再取第一筆,跨平台(避免依賴 head)。
     const allDates = execSync(
-      `git log --format=%cI --reverse -- "${path}"`,
+      `git log --format=%cI --reverse -- "${gitPath}"`,
       { encoding: 'utf-8' },
     ).trim();
     const firstDate = allDates.split('\n')[0] || '';
@@ -106,7 +108,9 @@ function getGitInfo(skillFolder: string): {
  *   - git 完全失敗(不在 repo 內):catch 住,return null
  */
 function getVersionBumpedAt(skillFolder: string): string | null {
-  const filePath = join('skills', skillFolder, 'SKILL.md');
+  // git 的 <rev>:<path> 物件語法使用 repo 內部路徑，必須固定用 POSIX-style slash。
+  // 不可使用 path.join；在 Windows 會產生反斜線，導致 git show <rev>:<path> 找不到物件。
+  const filePath = posix.join('skills', skillFolder, 'SKILL.md');
   try {
     // 撈所有改過該檔的 commit。--follow 處理 rename。
     // 格式:<hash>\t<iso-date>,一行一筆,新→舊。

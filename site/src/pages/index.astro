@@ -15,25 +15,61 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const skills = catalog.skills as SkillMeta[];
 
+const TAIWAN_TZ_OFFSET_MS = 8 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 // 計算每個 category 的數量
 const categoryCount: Record<string, number> = {};
 for (const s of skills) {
-  categoryCount[s.category] = (categoryCount[s.category] || 0) + 1;
+  const category = s.category || 'uncategorized';
+  categoryCount[category] = (categoryCount[category] || 0) + 1;
 }
 
-const categories = Object.keys(CATEGORY_LABELS).filter((c) => categoryCount[c] > 0);
+// 先保留既有 CATEGORY_LABELS 的固定順序,再補上未定義的新 category,避免 All 裡有卡片卻沒有篩選入口。
+const knownCategories = Object.keys(CATEGORY_LABELS).filter((c) => categoryCount[c] > 0);
+const unknownCategories = Object.keys(categoryCount)
+  .filter((c) => !CATEGORY_LABELS[c])
+  .sort((a, b) => a.localeCompare(b));
+const categories = [...knownCategories, ...unknownCategories];
+
+function normalizeCategory(category: string | null | undefined): string {
+  return category || 'uncategorized';
+}
+
+function getCategoryLabel(category: string | null | undefined): string {
+  const normalized = normalizeCategory(category);
+  return CATEGORY_LABELS[normalized] ?? (normalized === 'uncategorized' ? '未分類' : normalized);
+}
+
+function getCategoryClass(category: string | null | undefined): string {
+  return normalizeCategory(category)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-');
+}
+
+function getTime(iso: string | null | undefined): number {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
 
 function formatSize(bytes: number): string {
-  if (bytes === 0) return '—';
+  if (!Number.isFinite(bytes) || bytes <= 0) return '—';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toISOString().slice(0, 10);
+function shortenText(text: string | null | undefined, maxLength = 180): string {
+  const value = text ?? '';
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
+function formatDate(iso: string | null | undefined): string {
+  const t = getTime(iso);
+  if (t === 0) return '';
+  // 以 UTC+8 的日曆日顯示,避免 server-side build 在 UTC 環境下跨日前後少一天。
+  return new Date(t + TAIWAN_TZ_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 const totalCount = skills.length;
@@ -58,57 +94,48 @@ const visibleTasks = COMMON_TASKS.filter((t) => skillNames.has(t.skill));
 
 // ─────────────────────────────────────────────────────────────
 // Recent · 兩條時間軸
-// - 新發布:firstPublished 在 14 天內
-// - 新版本:versionBumpedAt 在 14 天內,且不在新發布清單裡(避免雙重出現)
+// - 最近更新:versionBumpedAt 在 14 天內,且版本確實 bump 過
+// - 新發布:firstPublished 在 14 天內,但若同時也是最近更新,歸到「最近更新」避免雙重出現
 // 各取最近 5 個。任一邊空就整邊不顯示;兩邊都空整段不顯示。
 // ─────────────────────────────────────────────────────────────
 const RECENT_WINDOW_DAYS = 14;
 const RECENT_LIMIT = 5;
 const now = Date.now();
-const windowMs = RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+const windowMs = RECENT_WINDOW_DAYS * DAY_MS;
 
-function withinWindow(iso: string | null): boolean {
-  if (!iso) return false;
-  const t = new Date(iso).getTime();
-  return Number.isFinite(t) && now - t <= windowMs;
+function withinWindow(iso: string | null | undefined): boolean {
+  const t = getTime(iso);
+  return t > 0 && t <= now && now - t <= windowMs;
 }
 
-function daysAgo(iso: string): string {
+function daysAgo(iso: string | null | undefined): string {
   // 以 UTC+8(台灣)的日曆日為基準計算「幾天前」,讓「今天/昨天」對齊人類直覺。
   // 不用 toLocaleDateString,因為 server-side build 環境的 locale 不可靠。
   // 例:5/28 8:00 看 5/27 22:00 的 commit → 24h 內,但日曆是昨天,應顯示「昨天」。
-  const TZ_OFFSET_MS = 8 * 60 * 60 * 1000;
-  const DAY_MS = 24 * 60 * 60 * 1000;
-  const calendarDay = (t: number) => Math.floor((t + TZ_OFFSET_MS) / DAY_MS);
+  const t = getTime(iso);
+  if (t === 0) return '';
 
-  const target = calendarDay(new Date(iso).getTime());
-  const today = calendarDay(now);
-  const days = today - target;
+  const calendarDay = (time: number) => Math.floor((time + TAIWAN_TZ_OFFSET_MS) / DAY_MS);
+  const days = calendarDay(now) - calendarDay(t);
 
   if (days <= 0) return '今天';
   if (days === 1) return '昨天';
   if (days < 7) return `${days} 天前`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks} 週前`;
+  return `${Math.floor(days / 7)} 週前`;
 }
 
+// 最近更新 = 已 bump 過版本,且 bump 落在窗口內。完整名單先算出來,再 slice,避免第 6 筆更新又被誤歸類為新發布。
+const allRecentUpdates = skills
+  .filter((s) => s.hasBeenVersionBumped && withinWindow(s.versionBumpedAt))
+  .sort((a, b) => getTime(b.versionBumpedAt) - getTime(a.versionBumpedAt));
+
+const updateNames = new Set(allRecentUpdates.map((s) => s.name));
+const recentUpdates = allRecentUpdates.slice(0, RECENT_LIMIT);
+
+// 新發布 = 首次發布在窗口內,且沒有落入任何最近更新清單。
 const newReleases = skills
-  .filter((s) => withinWindow(s.firstPublished))
-  .sort((a, b) => (a.firstPublished < b.firstPublished ? 1 : -1))
-  .slice(0, RECENT_LIMIT);
-
-const newReleaseNames = new Set(newReleases.map((s) => s.name));
-
-// 「最近更新」= lastModified 在窗口內、且不在新發布清單裡。
-// 不再分「新版本」獨立軌——bump 與否改用卡片內 badge 強度區分:
-//   - 窗口內 versionBumpedAt → 醒目 badge(顯示版號)
-//   - 否則 → 弱 badge(顯示「更新」)
-// 這樣語意只有兩種:新發布 vs 更新,使用者不用懂內部 convention。
-const recentUpdates = skills
-  .filter(
-    (s) => withinWindow(s.lastModified) && !newReleaseNames.has(s.name),
-  )
-  .sort((a, b) => (a.lastModified < b.lastModified ? 1 : -1))
+  .filter((s) => withinWindow(s.firstPublished) && !updateNames.has(s.name))
+  .sort((a, b) => getTime(b.firstPublished) - getTime(a.firstPublished))
   .slice(0, RECENT_LIMIT);
 
 const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
@@ -194,10 +221,7 @@ const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
                 <div class="recent__group-label">新發布</div>
                 <ul class="skill-grid recent__grid">
                   {newReleases.map((s) => {
-                    const shortDesc =
-                      s.description.length > 180
-                        ? s.description.slice(0, 180) + '…'
-                        : s.description;
+                    const shortDesc = shortenText(s.description);
                     return (
                       <li class="skill-card recent-card">
                         <span class="recent-card__badge badge-new">NEW</span>
@@ -206,8 +230,8 @@ const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
                         </h2>
                         <p class="skill-card__desc">{shortDesc}</p>
                         <div class="skill-card__meta">
-                          <span class={`cat-badge cat-${s.category}`}>
-                            {CATEGORY_LABELS[s.category]}
+                          <span class={`cat-badge cat-${getCategoryClass(s.category)}`}>
+                            {getCategoryLabel(s.category)}
                           </span>
                           <span>v{s.version}</span>
                           <span>{daysAgo(s.firstPublished)}</span>
@@ -237,32 +261,20 @@ const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
                 <div class="recent__group-label">最近更新</div>
                 <ul class="skill-grid recent__grid">
                   {recentUpdates.map((s) => {
-                    const shortDesc =
-                      s.description.length > 180
-                        ? s.description.slice(0, 180) + '…'
-                        : s.description;
-                    // 窗口內有 bump version → 顯示版號醒目 badge
-                    // 否則 → 顯示「更新」弱 badge
-                    // 用「窗口內 bump」判定,不是「曾經 bump」——避免
-                    // 一個三個月前 bump 過的 skill 今天改 typo 就被亮版號 badge
-                    const recentlyBumped = withinWindow(s.versionBumpedAt);
+                    const shortDesc = shortenText(s.description);
                     return (
                       <li class="skill-card recent-card">
-                        {recentlyBumped ? (
-                          <span class="recent-card__badge badge-update">v{s.version}</span>
-                        ) : (
-                          <span class="recent-card__badge badge-touch">更新</span>
-                        )}
+                        <span class="recent-card__badge badge-update">v{s.version}</span>
                         <h2 class="skill-card__title">
                           <a href={`${BASE}skill/${s.name}`}>{s.name}</a>
                         </h2>
                         <p class="skill-card__desc">{shortDesc}</p>
                         <div class="skill-card__meta">
-                          <span class={`cat-badge cat-${s.category}`}>
-                            {CATEGORY_LABELS[s.category]}
+                          <span class={`cat-badge cat-${getCategoryClass(s.category)}`}>
+                            {getCategoryLabel(s.category)}
                           </span>
                           <span>v{s.version}</span>
-                          <span>{daysAgo(s.lastModified)}</span>
+                          <span>{daysAgo(s.versionBumpedAt ?? s.lastModified)}</span>
                         </div>
                         <div class="skill-card__actions">
                           <span class="skill-card__version">
@@ -337,7 +349,7 @@ const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
                 role="tab"
                 aria-selected="false"
               >
-                {CATEGORY_LABELS[cat]}<span class="filter-btn__count">{categoryCount[cat]}</span>
+                {getCategoryLabel(cat)}<span class="filter-btn__count">{categoryCount[cat]}</span>
               </button>
             ))}
           </div>
@@ -345,26 +357,23 @@ const showRecent = newReleases.length > 0 || recentUpdates.length > 0;
           <ul class="skill-grid" id="skill-list">
             {skills.map((skill) => {
               // description 太長截斷
-              const shortDesc =
-                skill.description.length > 180
-                  ? skill.description.slice(0, 180) + '…'
-                  : skill.description;
+              const shortDesc = shortenText(skill.description);
 
               return (
                 <li
                   class="skill-card"
-                  data-category={skill.category}
-                  data-name={skill.name.toLowerCase()}
+                  data-category={normalizeCategory(skill.category)}
+                  data-name={(skill.name || '').toLowerCase()}
                   data-tags={(skill.tags || []).join(' ').toLowerCase()}
-                  data-search-text={skill.description.toLowerCase()}
+                  data-search-text={(skill.description || '').toLowerCase()}
                 >
                   <h2 class="skill-card__title">
                     <a href={`${BASE}skill/${skill.name}`}>{skill.name}</a>
                   </h2>
                   <p class="skill-card__desc">{shortDesc}</p>
                   <div class="skill-card__meta">
-                    <span class={`cat-badge cat-${skill.category}`}>
-                      {CATEGORY_LABELS[skill.category]}
+                    <span class={`cat-badge cat-${getCategoryClass(skill.category)}`}>
+                      {getCategoryLabel(skill.category)}
                     </span>
                     <span>v{skill.version}</span>
                     <span>{formatDate(skill.lastModified)}</span>
