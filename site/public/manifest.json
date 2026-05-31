@@ -1,8 +1,18 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-31T05:28:18.388Z",
-  "totalCount": 8,
+  "generatedAt": "2026-05-31T09:25:16.895Z",
+  "totalCount": 9,
   "skills": [
+    {
+      "name": "critical-reviewer",
+      "version": "0.1.0",
+      "category": "review",
+      "description": "批判性審查 skill：以結構化顧問框架召集審查小組，對概念設計、規劃產出、PRD、流程文件、系統設計與 Skill/Prompt 進行建設性批判。 觸發條件：「幫我審查」「批判這份」「挑毛病」「devil's advocate」「找盲點」「第二意見」 「顧問怎麼看」，或貼上概念文件、設計稿、規劃草案時。「這樣 ok 嗎」「哪裡有問題」也應主動觸發。",
+      "tags": [],
+      "zipFilename": "critical-reviewer-0.1.0.zip",
+      "zipSize": 31631,
+      "lastModified": "2026-05-31T09:24:39.524Z"
+    },
     {
       "name": "prd-writer",
       "version": "0.1.0",
@@ -35,8 +45,8 @@
       "description": "Skill 組裝器。把 intent + reference 組成 Anthropic 規範的 SKILL.md。",
       "tags": [],
       "zipFilename": "skill-create-0.1.0.zip",
-      "zipSize": 21850,
-      "lastModified": "2026-05-29T05:50:52+08:00"
+      "zipSize": 21826,
+      "lastModified": "2026-05-31T16:57:06+08:00"
     },
     {
       "name": "skill-discovery",
@@ -88,8 +98,8 @@
       "description": "策略型案例報告自主產出 skill。AI 主導從案例搜尋、扎根搜尋、策略拆解、批判修正到輸出的完整流程，使用者只在兩個停止點介入。輸出可直接用於策略判斷與提案決策，以三欄（confirmed / estimated / unknown）結構化標注知識論誠實度。預設在對話中以 markdown 格式邊寫邊展示。",
       "tags": [],
       "zipFilename": "strategy-case-report-2.7.2.zip",
-      "zipSize": 47624,
-      "lastModified": "2026-05-29T07:10:07+08:00"
+      "zipSize": 47602,
+      "lastModified": "2026-05-31T16:57:06+08:00"
     }
   ]
 }
