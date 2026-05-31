@@ -1,93 +1,91 @@
 # Dim 1 — Description / Trigger
 
-The description is the primary triggering mechanism. Claude scans it to decide "is there a skill for this request?"
+Description 是模型判斷「是否要載入這個 skill」的主要訊號。本維度不審固定格式，而是審觸發有效性、誤觸發風險與職責邊界。
+
+---
+
+## Hard Gate
+
+以下任一命中，Dim 1 最高只能給 1–2 分，且通常是 ship-blocker：
+
+- `description` 缺失或不是字串。
+- `description` >= 1024 byte，可能被平台拒收。
+- description 完全看不出使用情境，只剩人類摘要。
+- 觸發範圍明顯涵蓋其他已存在 skill，且沒有任何分工、轉交或 anti-trigger 說明。
+
+---
+
+## Quality Gate
+
+以下是高價值改善點，但不一定擋 ship：
+
+- trigger 情境太抽象，例如「幫助處理資料」「改善工作效率」。
+- 只有能力描述，沒有使用者會怎麼問、什麼任務會觸發。
+- trigger 太窄，使用者換一種自然說法就可能不觸發。
+- anti-trigger / Do NOT 只寫空話，沒有說明該交給誰或不處理什麼。
+- description 塞入大量背景、流程或理念，增加常駐成本但不幫助觸發。
+
+---
+
+## Style / Heuristic
+
+以下只作建議，不可單獨作為 ship-blocker：
+
+- 觸發詞不是 8–12 個。
+- description 不是 8–12 行。
+- 沒使用固定句型「當 X 時觸發」。
+- Do NOT 沒有剛好點名 2–5 個鄰居。
+- 觸發詞使用頓號、分號、英文逗號或 bullet。
+
+---
+
+## Score Rubric
 
 **Score 5 — Excellent**
-- Contains concrete trigger phrases ("trigger on...", "use when user says...")
-- Describes the specific contexts and tasks it handles
-- Has a slight "pushy" quality — nudges Claude to use the skill proactively
-- Distinct from other skills (no ambiguity about when to use this vs another)
+- 明確說出使用者情境、任務與觸發訊號。
+- 能處理同義問法，不依賴單一關鍵字。
+- 職責邊界清楚，與鄰近 skill 有可理解的分工。
+- 常駐資訊精簡，幾乎都服務於觸發判斷。
 
 **Score 4 — Good**
-- Has trigger phrases but they're too broad or overlap with other skills
-- "Pushy" quality present but could be stronger
+- trigger 大致明確，但仍可補幾個常見使用者問法。
+- 邊界可理解，但 Do NOT 或轉交邏輯可以更具體。
+- description 稍長或稍短，但不影響載入或判斷。
 
 **Score 3 — Acceptable**
-- Describes what the skill does, but trigger phrases are implicit
-- No explicit "use when..." framing
-- Might under-trigger in edge cases
+- 可以看出 skill 用途，但觸發情境偏概括。
+- 可能 under-trigger 或和鄰近 skill 有輕度模糊。
+- 需要人工從 SKILL.md 正文補理解。
 
 **Score 2 — Weak**
-- Vaguely describes scope but mixes human-readable summary with model triggers
-- Trigger is guessable but unreliable
+- 像人類摘要，不像模型觸發訊號。
+- 任務、輸入、輸出或邊界混在一起，模型難以判斷何時使用。
+- 容易與其他 skill 搶觸發或互相漏接。
 
 **Score 1 — Poor**
-- Written as a human-readable summary, not a trigger signal
-- Generic description ("a helper for X") with no specificity
-- Would cause Claude to under-trigger or miss relevant requests
-
-**Hard Limits(平台硬規則,違反直接 Score 1 + Critical Issue)**
-
-- **description ≤ 1024 字元(byte)**:Anthropic 平台 frontmatter 對 `description` 欄位有 1024 上限,超過會被拒收、skill 根本載不進來。中文一字 3 byte,實務上中英混寫到約 340 中文字就會逼近上限。
-  - 違反處理:不論其他維度表現,dim-1 一律判 **Score 1**,列為 🔴 Critical Issue,**ship-blocker**——使用者必須先瘦身才能繼續審其他維度。
-  - 警戒線:byte ≥ 900 雖未違反,但已逼近上限,標 🟡 提醒瘦身(常見手法:把「DO NOT trigger」清單下放到 SKILL.md 正文、合併重複觸發關鍵字)。
+- 缺 description、超過平台限制，或幾乎無法判斷觸發情境。
+- 明顯造成錯誤觸發 / 不觸發，且沒有可接受的補救訊號。
 
 ---
 
-## Specific Checks（對應 skill-create 寫作規範）
+## Reviewer 判讀問題
 
-這 6 條是 skill-create 在 `references/section-recipes.md`「Description 段」訂下的具體寫作規範。review 必須逐條檢查，違反條數對應到下方「Score Downgrade」表的降級判準。
-
-| # | 規範 | 通過判準 | 違反處理 |
-|---|---|---|---|
-| **SC-1** | 定位句含「當 X 時觸發」 | description 首段含「當…時觸發」字樣 | 違反 → 標 🟡（語意夠強可豁免，但需在報告註明） |
-| **SC-2** | 觸發關鍵字 8–12 個 | 用頓號分隔的觸發詞數量介於 8–12 | 6–7 或 13–15 標 🟡；< 6 或 > 15 標 🔴 |
-| **SC-3** | 觸發關鍵字用頓號分隔、無引號包裹 | 觸發詞段內無「」『』" " ' ' 包裹觸發詞 | 違反 → 標 🟡（可能有刻意原因，需人工確認） |
-| **SC-4** | DO NOT trigger 點名 2–5 個鄰居 skill | 含括號 +「-」連字符 token 且 ≥ 2 個 | 0 個 → 標 🔴；1 個 → 標 🟡 |
-| **SC-5** | description 8–12 行（含 `description: \|` 那行） | 行數介於 8–12 | 6–7 或 13–15 標 🟡；< 6 或 > 15 標 🔴 |
-| **SC-6** | byte ≤ 1024（Anthropic 平台硬上限） | validate-skill.sh 自動量 | 見 Hard Limits 段（直接 Score 1 + ship-blocker） |
-
-**判讀順序**：先跑 validate-skill.sh 拿機械檢查結果（SC-2/3/4/5/6 都有自動量），再人工判 SC-1（語意層面）。
-
-**例外處理**：
-- SC-3（引號）若觸發詞本身是「某句完整短句」性質的中文詞（例如「這要不要包成 skill」），引號是斷句需要不是錯誤——但**腳本仍會標 🟡 要求人工確認**，review 在報告中註明「刻意使用，豁免」即可。
-- SC-1 若採用其他強觸發語（例如「立即啟動這個 skill，當…」「使用此 skill 當…」），語意等效，可豁免標記。
+- [ ] description byte 是否 < 1024？
+- [ ] 使用者用自然語言描述需求時，模型是否知道要用這個 skill？
+- [ ] 是否包含任務詞、場景詞或輸入物訊號？
+- [ ] 是否能區分「使用這個 skill」與「轉給其他 skill」？
+- [ ] Do NOT / anti-trigger 是否真的降低誤觸發，而不是形式填空？
+- [ ] description 中的每句話是否有助於觸發判斷？若否，是否應移到 SKILL.md 正文或 references？
 
 ---
 
-## Score Downgrade（違反 Specific Checks 的扣分判準）
+## 常見誤判
 
-依違反條數與嚴重度，**自 Score 5 起降級**：
+### 誤判 1：沒有固定模板就扣重分
+錯。固定模板只是寫作輔助。只要模型能穩定判斷觸發時機，就不應因句型不同而重扣。
 
-| 違反情況 | 降級 |
-|---|---|
-| 0 條違反 | 不降，按 Score 1–5 主表評定 |
-| 1–2 條 🟡 違反 | Score 降 1 級（5 → 4，4 → 3，以此類推） |
-| 3+ 條 🟡 違反 **或** 1 條 🔴 違反 | Score ≤ 2（標 🔴 Critical Issue，列入 Improvements 段） |
-| SC-6 違反（byte > 1024）**或** SC-4 完全 0 個鄰居 skill | 直接 Score 1 + ship-blocker（與 Hard Limits 同級） |
+### 誤判 2：沒有 DO NOT 就一定不可 ship
+錯。若 skill 沒有明顯鄰居，或正向邊界已足夠清楚，可列為改善而非 ship-blocker。只有在實際存在高重疊鄰居且缺乏分工時，才升為 critical。
 
-**Critical Issue 觸發條件（任一即 ship-blocker）**：
-- SC-6 違反（description byte > 1024）
-- SC-4 完全違反（DO NOT trigger 空話 / 0 個鄰居 skill）
-- SC-2 嚴重違反（觸發詞 < 6 個或 > 15 個）
-- SC-5 嚴重違反（description 行數 < 6 或 > 15）
-
-**Improvement 觸發條件（標 🟡，可上線但建議修）**：
-- SC-1 違反（缺「當 X 時觸發」字樣）
-- SC-3 違反（觸發詞被引號包裹）
-- SC-2 / SC-5 輕度違反（在 🟡 區間）
-- SC-4 輕度違反（只點名 1 個鄰居）
-
----
-
-**Key questions:**
-- [ ] SC-6: description byte 數 ≤ 1024?（機械檢查由 validate-skill.sh 自動量）
-- [ ] SC-1: 定位句含「當 X 時觸發」字樣？
-- [ ] SC-2: 觸發關鍵字數量 8–12 個？
-- [ ] SC-3: 觸發關鍵字用頓號分隔、無引號包裹？
-- [ ] SC-4: DO NOT trigger 點名 2–5 個鄰居 skill？
-- [ ] SC-5: description 行數 8–12 行？
-- [ ] Does it include explicit trigger phrases?
-- [ ] Is it written for the model, not humans?
-- [ ] Is it distinct enough from other skills to prevent ambiguity?
-- [ ] Is it appropriately "pushy"?
+### 誤判 3：觸發詞越多越好
+錯。過多常見詞會造成 over-trigger。應重視「高辨識度任務詞」與「使用者自然問法」的組合。

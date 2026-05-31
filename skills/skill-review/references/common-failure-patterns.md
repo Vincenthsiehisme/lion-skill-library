@@ -1,89 +1,110 @@
 # Common Failure Patterns 快查表
 
-審查時常見的 5 種致命模式。出現任一即在 review 報告中標 🔴 Critical Issue。
-
-這份檔案在審查時**按需讀取**——當主檔的 Step 0 判讀後決定要做語意審查時，建議併同 dim 檔一起讀。
+這份檔案用來快速辨識常見高風險模式，但不要把所有 pattern 都自動判成 ship-blocker。先判斷它屬於 Hard Gate、Quality Gate 或 Style / Heuristic。
 
 ---
 
-## ❌ Pattern 1：Description 寫給人看不是給模型看
+## Pattern 1：Description 寫給人看，不是給模型觸發用
 
-**症狀**：description 像產品說明文，沒有觸發詞、沒講「使用者問什麼會觸發」。
+**症狀**：description 像產品說明文，沒有使用者情境、任務詞、輸入物或邊界訊號。
 
-description 是觸發信號，必須含具體觸發詞和情境。
+**Gate 層級**：Quality Gate；若完全無法判斷觸發情境，升為 Hard Gate。
 
 ❌ Bad:
-```
-"A helper for the billing module"
+
+```text
+A helper for the billing module.
 ```
 
 ✅ Good:
-```
-"處理發票、按比例計費、Stripe webhook 時觸發。
-觸發關鍵字：charge、invoice、refund、proration、webhook"
+
+```text
+當使用者要處理發票、退款、proration、Stripe webhook 或計費邏輯排查時使用。Do NOT: 一般後端架構 review 轉 code-review。
 ```
 
-**對應 dim 評分**：dim-1 = 1–2 分。
+**對應 dim**：dim-1。
 
 ---
 
-## ❌ Pattern 2：沒有 Gotchas 段
+## Pattern 2：Gotchas 是空話或缺 guardrail
 
-**症狀**：整份 SKILL.md 找不到 `## Gotchas` 章節，或 Gotchas 全是「請小心 X」「使用時要謹慎」這種假設性警告。
+**症狀**：Gotchas 全是「請小心」「注意邊界」「保持一致」；或高風險操作沒有防呆。
 
-Gotchas 是 skill 中訊號最高的內容。沒寫等於不完整。Gotchas 必須來自**真實 Claude 失敗案例**，不是想像出來的可能風險。
+**Gate 層級**：
 
-**對應 dim 評分**：dim-2 = 1 分（缺段）；2 分（有但全空話）。
+- 一般 skill：Quality Gate。
+- 會寫入、刪除、部署、寄送、修改外部狀態的 skill：可升為 Hard Gate。
 
----
+Gotchas 不一定都要來自已發生事故；新 skill 可用高可信預期風險起步，但必須具體、可操作、可驗證。
 
-## ❌ Pattern 3：過度規範步驟（Railroading）
-
-**症狀**：Step 1→2→3→...→10 線性步驟，每一步都寫死要怎麼問、要 Claude 回什麼。
-
-過度規定的後果：Claude 無法處理 edge case，使用者敘述跟步驟順序不對應就卡住。
-
-優先用「意圖 + 約束」取代條列步驟：
-
-❌ Bad:
-```
-Step 1: 問使用者 X 是什麼
-Step 2: 問使用者 Y 是什麼
-Step 3: 把 X+Y 組合成 Z
-```
-
-✅ Good:
-```
-維度 1 — 確認 X 與 Y 都已釐清
-（從使用者既有訊息能判讀的就判讀，不必逐一問）
-```
-
-**對應 dim 評分**：dim-4 = 1–2 分。
+**對應 dim**：dim-2。
 
 ---
 
-## ❌ Pattern 4：單檔扁平化
+## Pattern 3：過度 Railroading
 
-**症狀**：整個 skill 只有一個 SKILL.md，沒有 `references/` 子檔、沒有 `scripts/`、沒有 `assets/`。
+**症狀**：把所有任務都寫成 Step 1 → Step 2 → Step 3，且不允許因使用者情境調整。
 
-Skill 是**資料夾**不是**檔案**。沒有子檔代表：
-- 沒做 progressive disclosure
-- 重複內容沒地方下放
-- 範本/腳本沒地方放
+**Gate 層級**：Quality Gate；若步驟導致危險或不可逆操作，升為 Hard Gate。
 
-**對應 dim 評分**：dim-3 = 1–2 分。
+不要反射性懲罰所有 step-by-step。Runbook、部署、驗證、資料修復、批次處理類 skill 本來就需要順序；問題在於是否把「推理判斷」寫死。
+
+**對應 dim**：dim-4。
 
 ---
 
-## ❌ Pattern 5：有狀態 skill 不用 `${CLAUDE_PLUGIN_DATA}`
+## Pattern 4：單檔扁平化且內容過胖
 
-**症狀**：skill 會寫日誌、存設定，但路徑寫死在 skill 目錄下（例如 `./logs/`）。
+**症狀**：所有流程、範例、背景、模板、API docs 都塞進 SKILL.md，沒有 `references/`、`assets/` 或 `scripts/` 分層。
 
-skill 升級或重新部署時，目錄下的檔案會被覆蓋——所有狀態遺失。
+**Gate 層級**：Quality Gate。若 SKILL.md 很小、任務單純，沒有子檔不一定是問題。
 
-正確做法：用環境變數 `${CLAUDE_PLUGIN_DATA}` 指向使用者資料目錄，存放穩定狀態。
+Skill 是資料夾不是單檔，但也不代表每個 skill 都必須硬拆子目錄。重點是常駐/每次觸發/偶發載入是否分得開。
 
-**對應 dim 評分**：dim-7 = 1–2 分（如該 skill 有狀態需求）。
+**對應 dim**：dim-3、dim-8。
+
+---
+
+## Pattern 5：有狀態 skill 沒有穩定儲存策略
+
+**症狀**：skill 需要記錄歷史、設定、索引或使用者偏好，卻把檔案寫在 skill 目錄下，升級時可能遺失。
+
+**Gate 層級**：Quality Gate；若遺失狀態會造成錯誤操作或資料破壞，升為 Hard Gate。
+
+正確做法通常是用 `${CLAUDE_PLUGIN_DATA}` 這類穩定使用者資料位置，並在 SKILL.md 說明記錄什麼、為何記錄、何時讀寫。
+
+**對應 dim**：dim-7。
+
+---
+
+## Pattern 6：腳本存在但不可執行或引用錯路徑
+
+**症狀**：SKILL.md 要求執行 `./scripts/foo.sh`，但檔案不存在、沒有 executable permission，或路徑與實際結構不一致。另一種假陽性是把 `scripts/lib/` helper、fixtures、templates 也當作入口 script 要求 executable。
+
+**Gate 層級**：入口 script 缺失或不可執行是 Hard Gate；helper/lib 沒有 executable permission 通常不是問題，只需確認可讀與被正確引用。
+
+這不是風格問題，而是執行時會直接失敗。應先修檔案路徑與入口權限，再談語意品質；但也不要把輔助檔的權限誤判成 ship-blocker。
+
+**對應 dim**：dim-6。
+
+---
+
+## Pattern 7：把 conflict 初篩當最終判決
+
+**症狀**：只因兩個 skill 重疊幾個詞，就判定必須合併或不可 ship。
+
+**Gate 層級**：Style / Heuristic 或 Quality Gate；只有在任務、輸入、輸出與職責都高度重疊時，才升為 Hard Gate。
+
+衝突判斷要看：
+
+```text
+同詞是否同任務？
+同任務是否同輸入？
+同輸入是否同輸出？
+若都相近，是否有明確轉交與 Do NOT？
+```
+
+**對應 dim**：dim-1、conflict script。
 
 ---
 
@@ -91,7 +112,7 @@ skill 升級或重新部署時，目錄下的檔案會被覆蓋——所有狀�
 
 | 檔案 | 用途 | 何時讀 |
 |---|---|---|
-| 本檔案 | **快查反模式**：直接判 🔴 Critical | 全面審查、特定診斷時併讀 |
-| `dims/dim-N-*.md` | **分等級評分**：5/4/3/2/1 詳細判準 | 全面審查時依 Step 0 對照表選讀 |
+| 本檔案 | 快速辨識常見 failure pattern 與 gate 層級 | 全面審查、特定診斷時併讀 |
+| `dims/dim-N-*.md` | 分等級評分，提供 1–5 / N/A 細節 | 依 Step 0 對照表選讀 |
 
-兩者不衝突——本檔抓「死線」，dim 檔給「分數」。
+原則：先確認 gate 層級，再給分數與建議。不要因為看見 pattern 名稱就直接判不可 ship。

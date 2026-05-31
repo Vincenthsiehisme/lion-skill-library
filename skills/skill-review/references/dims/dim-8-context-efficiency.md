@@ -1,80 +1,80 @@
-# Dim 8 — Context Efficiency
+# Dim 8 — Context Efficiency / Existence Value
 
-Every installed skill has a token cost on every session, even sessions unrelated to that skill. This dimension evaluates whether the skill's token burden is proportionate to its value.
-
----
-
-## Existence Flag (not scored)
-
-Before scoring, ask: **could Claude handle 70%+ of this skill's tasks without it?**
-
-If yes, add this flag to the review output:
-
-> ⚠️ **存在合理性偏低**：這個 skill 處理的任務，Claude 在無 skill 的情況下也能完成大部分。安裝它會對每個 session 增加常駐負擔，建議評估是否真的需要。
-
-This is a flag, not a score. It does not affect Overall.
+每個已安裝 skill 都會帶來常駐 description 成本；每次觸發也會帶來 SKILL.md 與 references 的載入成本。本維度評估成本是否值得，而不是單純追求越短越好。
 
 ---
 
-## Scoring (1–5)
+## Existence Value Flag（不直接計分）
 
-Evaluate across three cost layers:
+不要只問「Claude 沒 skill 是否也能做 70%」。這太主觀。改用四個證據判斷：
+
+| 證據 | 說明 |
+|---|---|
+| 內部知識 | 是否包含 Claude 不會知道的流程、標準、環境、路徑、限制？ |
+| 失敗沉澱 | 是否沉澱真實或高可信的錯誤案例與防錯規則？ |
+| 可驗收格式 | 是否提供固定輸出格式、檢查表、rubric 或驗收標準？ |
+| 可重用資產 | 是否有 scripts、templates、references、assets 可降低重工？ |
+
+若四項都很弱，才標：
+
+> ⚠️ **存在合理性偏低**：此 skill 主要重述 Claude 本來就能做的事，缺少內部知識、失敗沉澱、可驗收格式或可重用資產。建議評估是否合併、下架，或補強成真正有價值的 skill。
+
+此 flag 不直接扣 Overall，但會影響 ship 判定與改善建議。
+
+---
+
+## Cost Layers
 
 ### Layer 1 — Description 常駐成本
-Loaded on every session for every user who has this skill installed.
 
-- **Recommended range: 40–80 words**
-- Below 40: likely missing trigger phrases (see Dim 1)
-- Above 80: likely contains content that doesn't help triggering — move to SKILL.md body
+- 必須 < 1024 byte，這是 hard gate。
+- 理想上只保留觸發、邊界與必要轉交。
+- 長度沒有固定字數硬規則；只問每句是否幫助模型判斷「何時用」。
 
 ### Layer 2 — SKILL.md 觸發成本
-Loaded every time this skill triggers. Assess: is everything in SKILL.md actually needed on every invocation?
 
-- Content that's needed every time: instructions, output format, gotchas → keep in SKILL.md
-- Content needed only sometimes: detailed API refs, examples, templates → should be in `references/`
-- Content never needed at runtime: background context, rationale → remove entirely
+保留每次觸發都需要的內容：核心流程、輸出格式、gate、gotchas。把偶發細節放到 references。
 
 ### Layer 3 — References 按需載入
-References should only be loaded when explicitly needed. Assess: does SKILL.md have clear conditions for when each reference file should be read, or does it instruct Claude to read everything up front?
+
+References 要有明確載入條件。不要在 SKILL.md 中要求每次讀完整 reference library。
 
 ---
 
 ## Score Rubric
 
 **Score 5 — Excellent**
-- Description is 40–80 words with no redundant content
-- SKILL.md body contains only always-needed content; heavy reference material is extracted
-- References have explicit load conditions ("read this file only when X")
-- Triggered token load (SKILL.md + immediately loaded refs) is under 200 lines
+- Description 精簡且高訊號。
+- SKILL.md 只放每次必需內容。
+- References 有清楚 load conditions。
+- 存在價值明確，至少兩項 existence evidence 很強。
 
 **Score 4 — Good**
-- Description is within range but has minor redundancy
-- SKILL.md is lean; one or two sections could be extracted but aren't blocking
-- References have partial load conditions
+- 成本大致合理，少數段落可下放。
+- References 載入條件大致清楚。
+- 存在價值可被說明。
 
 **Score 3 — Acceptable**
-- Description is slightly over range (80–120 words) or slightly padded
-- SKILL.md has some bulky sections that could move to references
-- References loaded broadly without clear conditions
+- 有些常駐或觸發內容偏胖，但不致嚴重浪費。
+- 存在價值中等，需要再補失敗沉澱或 reusable assets。
 
 **Score 2 — Weak**
-- Description is clearly over range (120+ words) with obvious filler
-- SKILL.md mixes always-needed and rarely-needed content without separation
-- No load conditions on references — Claude reads everything on every trigger
+- SKILL.md 混入大量偶發背景或長例子。
+- References 缺少載入條件。
+- 存在價值偏弱，像一般提示詞包裝。
 
 **Score 1 — Poor**
-- Description is 200+ words, far beyond what aids triggering
-- SKILL.md is 500+ lines with no progressive disclosure at all
-- Entire reference library loaded unconditionally on every trigger
+- Description 違反 hard gate，或 SKILL.md/reference 載入策略嚴重失控。
+- 幾乎沒有可證明的 skill 存在價值。
 
-**N/A:** Runbook, Infrastructure Ops, or other skill types where high token load is expected due to the nature of the task (multi-service investigation guides, large reference corpora). Note the category and explain why the load is justified.
+**N/A**：極少使用。只有在使用者明確要求審查大型 runbook / ops corpus，且高載入成本是任務本質時，才可 N/A，並需說明理由。
 
 ---
 
-## Key Questions
+## Reviewer 判讀問題
 
-- [ ] Is the description 40–80 words?
-- [ ] Does SKILL.md contain only content needed on every invocation?
-- [ ] Do references have explicit conditions for when to load them?
-- [ ] Could Claude do 70%+ of this skill's tasks without it? (existence flag)
-- [ ] If N/A: is the high token load genuinely justified by the skill type?
+- [ ] description 每句是否都服務於觸發判斷？
+- [ ] SKILL.md 是否只保留每次觸發都需要的內容？
+- [ ] references 是否有按需載入條件？
+- [ ] 此 skill 是否至少具備一項強 existence evidence？
+- [ ] 若 token 成本高，是否由任務風險或複雜度合理支持？

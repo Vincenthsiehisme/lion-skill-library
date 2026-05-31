@@ -1,30 +1,64 @@
 # Dim 4 — Railroading
 
-Skills should give Claude intent + flexibility, not step-by-step instructions.
+本維度不是反對步驟，而是反對把「需要推理的判斷」寫死成機械流程。好的 skill 會在需要彈性時保留彈性，在需要安全時固定順序。
+
+---
+
+## 先判斷 skill 類型
+
+| 類型 | 對步驟化的合理期待 |
+|---|---|
+| 策略 / 分析 / 寫作 | 應偏 outcome-based，避免固定思考順序 |
+| Review / Audit | 可有檢查順序，但評分需允許人工判斷 |
+| Runbook / Ops / 部署 / 資料修復 | 可以明確 step-by-step，因為順序關係到安全 |
+| Script / Tool wrapper | 可以明確命令與參數，但需有錯誤處理與 guardrail |
+| 教學 / 練習 | 可以有階段，但要允許依使用者程度調整 |
+
+---
+
+## Hard Gate
+
+- 步驟要求會造成危險操作，例如不確認就覆蓋、刪除、寄送或部署。
+- 指令要求固定使用不存在或不可執行的工具。
+- 明確禁止模型處理必要例外，導致任務遇到常見變體就失敗。
+
+---
+
+## Quality Gate
+
+- 每個情境都強制完整流程，即使使用者只問單點問題。
+- 把評估結論寫死，例如「一定要輸出三個問題」而不管是否真的有三個。
+- 要求讀取所有 references，沒有按需載入。
+- 沒有說明哪些步驟可跳過、哪些不可跳過。
+
+---
+
+## Score Rubric
 
 **Score 5 — Excellent**
-- Instructions describe outcomes and constraints, not enumerated steps
-- Claude has room to adapt to edge cases
-- Example: "Cherry-pick onto a clean branch. Resolve conflicts preserving intent."
+- 清楚區分「不可跳過的安全/驗證步驟」與「可彈性調整的思考步驟」。
+- 指令以目標、限制、判準為主，不把所有 reasoning 寫死。
+- 面對 edge case 時仍有調整空間。
 
 **Score 4 — Good**
-- Mostly intent-based, with a few specific steps where truly necessary
-- Edge cases would likely still be handled correctly
+- 大致保留彈性，少數步驟化合理。
+- 有明確例外或按需判斷。
 
 **Score 3 — Acceptable**
-- Mix of prescriptive steps and intent-based guidance
-- Some flexibility but over-specified in places
+- 步驟與彈性混合；一般情境可用，但 edge case 可能稍卡。
 
 **Score 2 — Weak**
-- Mostly step-by-step with occasional intent statements
-- Would struggle on any variation not explicitly anticipated
+- 多數指令是固定流程，使用者需求稍變就容易過度執行或漏判。
 
 **Score 1 — Poor**
-- Step 1, Step 2, Step 3... with very specific commands
-- No room for Claude to reason about edge cases
-- Would break on any variation not anticipated by the author
+- 完全機械化，沒有判斷空間，或步驟會導致危險/不可逆錯誤。
 
-**Key questions:**
-- [ ] Are instructions outcome-based rather than step-enumerated?
-- [ ] Does Claude have flexibility to adapt to variations?
-- [ ] Would this skill still work on edge cases the author didn't anticipate?
+---
+
+## Reviewer 判讀問題
+
+- [ ] 這個 skill 類型是否本來需要明確步驟？
+- [ ] 哪些步驟是安全/正確性必要，哪些只是作者偏好的思考流程？
+- [ ] 使用者只問單點問題時，skill 是否允許部分執行？
+- [ ] 遇到 edge case 時，模型是否知道可以偏離流程？
+- [ ] 有沒有把「檢查順序」誤寫成「結論順序」？

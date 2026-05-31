@@ -1,7 +1,9 @@
 # Skill Categories
 
-Based on Anthropic's internal taxonomy. Durable skills fit cleanly into one category.
-Skills that straddle multiple categories are often confusing and should be split.
+This taxonomy is a practical review aid, not a hard classification rule.
+Most durable skills should have one primary category, while secondary capabilities should remain clearly subordinate.
+
+Use this file to identify responsibility drift, not to force every skill into a single rigid bucket.
 
 ---
 
@@ -162,10 +164,10 @@ Skills that straddle multiple categories are often confusing and should be split
 
 ## Multi-Category Warning Signs
 
-A skill that combines two or more categories often has these symptoms:
+A skill can have secondary capabilities, but the primary responsibility should remain obvious. Review for split/merge only when multiple categories create these symptoms:
 - SKILL.md is very long (>500 lines) trying to cover multiple concerns
 - The trigger description is vague or covers too many scenarios
 - It works for some use cases but fails on others
 - Hard to name clearly ("deployment-and-testing-helper")
 
-**Recommendation:** Split into focused skills and have one compose the other.
+**Recommendation:** If the secondary capability is merely supportive, keep it subordinate and document the boundary. If two primary responsibilities compete, split into focused skills and have one compose or hand off to the other.
