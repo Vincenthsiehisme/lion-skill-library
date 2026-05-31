@@ -1,6 +1,5 @@
 ---
 name: skill-create
-schema_version: v2
 description: |
   Skill 組裝器。把 intent + reference 組成 Anthropic 規範的 SKILL.md。
 

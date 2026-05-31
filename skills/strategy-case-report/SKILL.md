@@ -2,7 +2,6 @@
 name: strategy-case-report
 version: "2.7.2"
 category: planning
-updated: "2026-04-27"
 description: |
   策略型案例報告自主產出 skill。AI 主導從案例搜尋、扎根搜尋、策略拆解、批判修正到輸出的完整流程，使用者只在兩個停止點介入。輸出可直接用於策略判斷與提案決策，以三欄（confirmed / estimated / unknown）結構化標注知識論誠實度。預設在對話中以 markdown 格式邊寫邊展示。
 
