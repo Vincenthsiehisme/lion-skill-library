@@ -1,26 +1,19 @@
 #!/usr/bin/env tsx
 /**
- * prepare-release.ts — Layer 1 本地上架前置腳本
+ * prepare-release.ts — 小改 quick mode 本地上架前置腳本
  *
- * 目的:在 git commit 之前,確保每個動過的 skill 都同步更新了
- * SKILL.md 的 version 與 CHANGELOG.md 的對應段落。
+ * 現在的標準 release 流程是：
+ *   1. npm run release:plan  產生 AI 可讀 release draft
+ *   2. AI 產 .lion-stage/release-notes.json
+ *   3. npm run release:apply 套用 version + CHANGELOG
  *
- * 流程:
- *   1. 對比 origin/main,掃出有改動的 skill
- *   2. 逐個 skill 互動式詢問:
- *      - 建議版號(用啟發式規則算)
- *      - 變更摘要(一句話)
- *   3. 自動改 SKILL.md frontmatter 的 version
- *   4. 自動在 CHANGELOG.md 插入新段落
- *   5. 大 diff 時(>= 50 行)額外輸出 .lion-stage/<name>-diff-summary.md
- *      供使用者貼給 Claude 整理
+ * 本檔保留給「只改 1 個 skill、diff 很小、你已知道摘要怎麼寫」的 quick mode。
+ * 批次變更、大 diff、別人交來的 skill，請優先用 release:plan + release:apply。
  *
- * 不做的事:
- *   - 不 git add,不 commit,不 push(使用者自己決定何時 commit)
- *   - 不打包 zip(zip 由 GitHub Actions 在 deploy 時打)
- *   - 不解析 CHANGELOG.md 內容(自由格式)
- *
- * Idempotent:重跑會偵測 CHANGELOG.md 已有當前 version 段落,跳過該 skill。
+ * 不做的事：
+ *   - 不 git add, 不 commit, 不 push
+ *   - 不打包 zip
+ *   - 不取代 release:plan / release:apply 的批次 AI 協作流程
  */
 
 import { execSync } from 'node:child_process';

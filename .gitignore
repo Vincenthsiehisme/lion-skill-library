@@ -9,7 +9,8 @@ site/public/downloads/*.zip
 site/src/data/skills.json
 site/src/data/skills.generated.json
 
-# Local release staging (產 diff summary 給人類貼 Claude 用)
+# Local intake / release staging
+incoming/
 .lion-stage/
 
 # Environment

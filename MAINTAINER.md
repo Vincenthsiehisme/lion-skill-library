@@ -1,292 +1,437 @@
 # MAINTAINER.md
 
-> 上架代理人速查。每次有 skill 要上架,照這份走。
-> 設計細節在 patch 5 跟 `scripts/prepare-release.ts` 的 header comment。
+> 上架代理人速查。每次有 skill 要上架，照這份走。
 
 ---
 
-## 前置:確認你在正確的地方
+## 前置：確認你在正確的地方
 
-跑任何 `git` / `npm` 指令前,**先確認三件事**——不確認就會出怪事(指令找不到、prepare 看不到改動、ref 找不到 main)。
+跑任何 `git` / `npm` 指令前，先確認三件事。
 
 ```powershell
-# 1. 切到 repo 根目錄(不是 skills/ 子目錄)
+# 1. 切到 repo 根目錄
 cd C:\Users\<你>\lion-skill-library
 
-# 2. 確認你在對的地方——應該看到 .git / package.json / skills / scripts
+# 2. 確認你在對的地方
 ls
+# 應該看到 .git / package.json / skills / scripts
 
 # 3. 確認 branch
-git branch
-# 星號 * 那行就是現在的 branch,應該是 main
+ git branch
+# 星號 * 那行應該是 main
 
 # 4. 確認 remote
-git remote -v
-# 預期看到 origin 指向 github.com/Vincenthsiehisme/lion-skill-library
+ git remote -v
+# 預期 origin 指向 github.com/Vincenthsiehisme/lion-skill-library
 
-# 5. 確保 origin refs 是最新的(不做的話 prepare 可能說 "origin/main 不存在")
+# 5. 確保 origin refs 是最新的
+ git fetch origin
+```
+
+---
+
+## 現在的標準流程
+
+新的流程不是「prepare 逐一問你 CHANGELOG」，而是：
+
+```text
+intake          收件與標準化
+release:plan    掃描變更，匯出 AI 可讀 draft
+AI              整理 release notes JSON
+release:apply   自動套用 version + CHANGELOG
+build           本地檢查與網站 build
+push            GitHub Actions 部署
+```
+
+TL;DR：
+
+```powershell
+git checkout main
+git pull origin main
+
+# 新 skill 才需要 intake；既有 skill 修改可直接改 skills/<name>/
+npm run intake -- .\incoming\some-skill --category review
+
+npm run release:plan -- --only some-skill
+# 把 .lion-stage/release-plan.md 貼給 AI
+# 把 AI 回傳 JSON 存成 .lion-stage/release-notes.json
+
+npm run release:apply
+npm run build
+
+git add -A
+git commit -m "add: some-skill"
+git push origin main
+```
+
+---
+
+## 場景 A：上架全新 skill
+
+### 1. 同步 main
+
+```powershell
+git checkout main
+git pull origin main
 git fetch origin
 ```
 
-四件事都對才往下走。
-
----
-
-## TL;DR
+### 2. 把新 skill 放進 incoming/
 
 ```powershell
-# 每次上架,固定三步:
-git checkout main && git pull origin main
-# (動 skill 檔案 — 自己寫或解作者交來的 zip 進 skills/<name>/)
-git add skills/<name>/      # ← 新 skill 必須先 add,否則 prepare 看不到 untracked
-npm run prepare              # 互動補 version + CHANGELOG.md
-git add -A && git commit -m "release: <skill> <version>" && git push origin main
+mkdir incoming
+Copy-Item -Recurse <source-folder> incoming\some-skill
 ```
 
-剩下交給 GitHub Actions。
+作者交付的最低格式：
 
----
+```text
+some-skill/
+├── SKILL.md
+└── references/
+    └── optional.md
+```
 
-## 場景 A:上架全新 skill
+作者不需要提供 CHANGELOG，也不需要懂正式上架規則。
 
-1. **同步 main**
-
-   ```powershell
-   git checkout main
-   git pull origin main
-   ```
-
-2. **把新 skill 資料夾放進 `skills/<name>/`**
-
-   - 自己寫的:直接編
-   - 作者交來的:解壓進去,確認結構是 `skills/<name>/SKILL.md` + 可選的 `references/` `assets/`
-   - **不要自己寫 version 欄位、不要自己建 CHANGELOG.md**(prepare 會做)
-   - **frontmatter 必填欄位**:`name` / `description`(≥ 20 字)/ `version`(semver `X.Y.Z`)/ `category`(見下方合法值)
-   - **frontmatter category 合法值**:`planning` / `writing` / `review` / `summary` / `data` / `utility` / `domain`(其他值 CI 會擋)
-
-3. **`git add` 讓 prepare 看見新 skill**
-
-   ```powershell
-   git add skills/<name>/
-   ```
-
-   **為什麼這步必要**:prepare 用 `git diff` 找改動,**untracked 檔案 git diff 看不到**。沒 add 直接跑 prepare,你的新 skill 不會出現在偵測清單裡。
-
-4. **跑 prepare**
-
-   ```powershell
-   npm run prepare
-   ```
-
-   會偵測到「新發布」狀態,自動建議 `0.1.0`,問你變更摘要:寫「初版」。
-
-   **同時被列出的舊 skill**(modified-only 的 skill,prepare 偶爾會把它們也算成「新發布」並列出全部檔案)——**摘要欄位輸入空字串 Enter 即可放棄該 skill**,不會被改到。
-
-5. **commit + push**
-
-   ```powershell
-   git add -A
-   git commit -m "release: <skill> 0.1.0"
-   git push origin main
-   ```
-
-6. **看 site**(等 GitHub Actions 跑完約 1-2 分鐘)
-
-   `https://vincenthsiehisme.github.io/lion-skill-library/`
-
-   新 skill 出現在「最近動態 → 新發布」軌(藍實心 NEW badge)。
-
----
-
-## 場景 B:更新既有 skill
-
-1. **同步 main**(同上)
-
-2. **編 skill 檔案**——SKILL.md 改內容 / 加 reference / 改 description / 換 trigger 關鍵字。**不要動 version 字串**。
-
-3. **跑 prepare**
-
-   ```powershell
-   npm run prepare
-   ```
-
-   會列出偵測到的改動,依規模建議版號:
-
-   | diff 規模 | 建議 | 理由 |
-   |---|---|---|
-   | description 字串變了 | minor (+0.1.0) | 觸發行為改了,使用者該注意 |
-   | body 變 >= 20 行 | minor (+0.1.0) | 中等改動 |
-   | 其他 | patch (+0.0.1) | 小修 |
-
-   按 Enter 接受,或自己輸入版號覆蓋。
-
-   接著問變更摘要,**一句話**寫完。
-
-4. **大 diff 補述**(僅當 diff >= 50 行)
-
-   prepare 會額外吐 `.lion-stage/<name>-diff-summary.md`。流程:
-
-   ```
-   打開 .lion-stage/<name>-diff-summary.md
-   → 複製整個內容
-   → 貼到 Claude 對話
-   → 請 Claude 整理成 1-3 句白話 CHANGELOG 條目
-   → 把整理結果手動補進 skills/<name>/CHANGELOG.md 對應 version 段落
-   (覆蓋掉 prepare 自動填的那句單行摘要)
-   ```
-
-   **手動編 CHANGELOG.md 時注意編碼**——見下方「PowerShell 寫含中文檔案的安全方式」。
-
-5. **commit + push**
-
-   ```powershell
-   git add -A
-   git commit -m "release: <skill> <new-version>"
-   git push origin main
-   ```
-
-6. **看 site**
-
-   新版本出現在「最近動態 → 最近更新」軌(藍邊框 v0.X.Y badge)。
-
----
-
-## 場景 C:作者只給了一份 zip,沒附 CHANGELOG.md
-
-正常——作者不需要懂 CHANGELOG。流程跟場景 B 一樣:
-
-1. 解 zip,覆蓋進 `skills/<name>/`(注意保留既有 CHANGELOG.md 不要被覆蓋,或者解完之後手動把 CHANGELOG.md 從 git history 抓回來)
-2. `npm run prepare`——它會偵測差異、補 version 跟 CHANGELOG
-3. 看 prepare 建議,大 diff 就丟給 Claude 整理
-
-**保留既有 CHANGELOG.md 的安全做法**:
+### 3. dry run
 
 ```powershell
-# 先備份既有 CHANGELOG
-copy skills\<name>\CHANGELOG.md skills\<name>\CHANGELOG.md.bak
-# (覆蓋 skill 資料夾)
-# 還原 CHANGELOG
-move /Y skills\<name>\CHANGELOG.md.bak skills\<name>\CHANGELOG.md
+npm run intake -- .\incoming\some-skill --category review --dry-run
 ```
 
-或更乾淨的方式:
+確認：
+
+```text
+target
+category
+version
+copied entries
+warnings
+```
+
+### 4. 正式匯入
 
 ```powershell
-# 解 zip 進臨時資料夾,只 copy SKILL.md 跟 references/ 跟 assets/
-# 不要 copy 作者那份(如果有)的 CHANGELOG.md
+npm run intake -- .\incoming\some-skill --category review
 ```
+
+`intake` 會：
+
+```text
+補 name / version / category / license / tags / related
+搬到 skills/<name>/
+建立空 CHANGELOG.md shell
+跑 validate
+```
+
+它不會寫正式 CHANGELOG 條目。
+
+### 5. 產生 release plan
+
+```powershell
+npm run release:plan -- --only some-skill
+```
+
+產物：
+
+```text
+.lion-stage/release-plan.md
+.lion-stage/release-notes.template.json
+```
+
+### 6. 交給 AI 整理
+
+把 `.lion-stage/release-plan.md` 貼給 AI，要求它只輸出 JSON。
+
+範例：
+
+```json
+{
+  "entries": [
+    {
+      "skill": "some-skill",
+      "releaseType": "patch",
+      "version": "0.1.0",
+      "summary": [
+        "初次上架 some-skill，提供特定工作情境下的標準化操作流程。"
+      ]
+    }
+  ]
+}
+```
+
+存成：
+
+```text
+.lion-stage/release-notes.json
+```
+
+### 7. 套用 version + CHANGELOG
+
+```powershell
+npm run release:apply
+```
+
+對新 skill，通常會：
+
+```text
+version 維持 0.1.0
+CHANGELOG.md 新增 0.1.0 段落
+```
+
+### 8. 本地完整檢查
+
+```powershell
+npm run build
+```
+
+這會跑：
+
+```text
+validate
+check:changelogs
+build:zips
+build:catalog
+build:site
+```
+
+### 9. Commit + push
+
+```powershell
+git diff
+git add -A
+git commit -m "add: some-skill"
+git push origin main
+```
+
+---
+
+## 場景 B：更新既有 skill
+
+### 1. 同步 main
+
+```powershell
+git checkout main
+git pull origin main
+git fetch origin
+```
+
+### 2. 修改 skill
+
+直接修改：
+
+```text
+skills/<name>/SKILL.md
+skills/<name>/references/
+skills/<name>/scripts/
+skills/<name>/assets/
+```
+
+不要手動改 version，不要先手動寫 CHANGELOG。
+
+### 3. 產生 release plan
+
+```powershell
+npm run release:plan -- --only skill-review
+```
+
+### 4. 交給 AI 整理 release-notes.json
+
+把 `.lion-stage/release-plan.md` 貼給 AI，讓它判斷每個 entry 的：
+
+```text
+releaseType
+version
+summary
+```
+
+如果只是 README / CHANGELOG / 格式整理，請讓 AI 標：
+
+```json
+{
+  "skill": "skill-review",
+  "releaseType": "none",
+  "version": null,
+  "summary": []
+}
+```
+
+### 5. 套用
+
+```powershell
+npm run release:apply
+```
+
+### 6. build + push
+
+```powershell
+npm run build
+
+git diff
+git add -A
+git commit -m "release: skill-review"
+git push origin main
+```
+
+---
+
+## 場景 C：一次修改很多 skill
+
+```powershell
+npm run release:plan
+```
+
+把 `.lion-stage/release-plan.md` 整份交給 AI。
+
+AI 要做的是：
+
+```text
+逐一看 diff
+決定 releaseType
+整理 summary
+不需要 release 的項目標 none
+```
+
+存成 `.lion-stage/release-notes.json` 後：
+
+```powershell
+npm run release:apply
+npm run build
+
+git diff
+git add -A
+git commit -m "release: batch skill updates"
+git push origin main
+```
+
+---
+
+## 小改 quick mode：release:quick
+
+`npm run release:quick` 還保留，但只建議用在小改。
+
+適用：
+
+```text
+只改 1 個 skill
+diff 很小
+你自己知道 CHANGELOG 要寫什麼
+```
+
+不適用：
+
+```text
+一次很多 skill
+作者交來的大包 skill
+CHANGELOG 需要 AI 幫你整理
+你不想在 terminal 逐一填摘要
+```
+
+遇到不適用情境，請用：
+
+```powershell
+npm run release:plan
+npm run release:apply
+```
+
+---
+
+## release-notes.json 規格
+
+```json
+{
+  "entries": [
+    {
+      "skill": "skill-review",
+      "releaseType": "minor",
+      "version": "0.4.0",
+      "summary": [
+        "重整 skill-review 的審查流程，讓輸出更聚焦於合理性、缺口與可執行修正。",
+        "補強 references 的判斷準則，降低審查結果過度發散的問題。"
+      ]
+    }
+  ]
+}
+```
+
+## releaseType 判斷表
+
+| releaseType | 用於 | 是否改 version | 是否寫 CHANGELOG |
+|---|---|---:|---:|
+| `major` | 使用方式大改、破壞性變更 | 是 | 是 |
+| `minor` | description、trigger、主流程、判斷框架改 | 是 | 是 |
+| `patch` | 補 reference、修 typo、補範例、修小錯 | 是 | 是 |
+| `none` | README、CHANGELOG、格式化、非行為性整理 | 否 | 否 |
+
+原則：只有對使用者使用 skill 有影響，才需要 skill CHANGELOG。
 
 ---
 
 ## CI fail 速查表
 
-push 之後去 `https://github.com/Vincenthsiehisme/lion-skill-library/actions` 看。紅色點進去看哪個 step 失敗。
+push 後去 Actions 看紅色 step。
 
 | Step | 訊息 | 修法 |
 |---|---|---|
-| **Check changelogs** | `CHANGELOG.md 缺 vX.Y.Z 段落` | 編 `skills/<name>/CHANGELOG.md` 補一段:<br>```## X.Y.Z - YYYY-MM-DD```<br>```<描述>```<br>commit push |
-| **Check changelogs** | `CHANGELOG.md 缺 vX.Y.Z 段落`(明明已寫) | 標題的連字號**必須是 ASCII `-`**(0x2D),不是 em-dash `—`(U+2014)或 en-dash `–`。用編輯器全文搜尋替換,或重寫該行 |
-| **Check changelogs** | 同上,版本號被擋 | CHANGELOG 版本號必須是嚴格 semver:`X.Y.Z`,三段純數字。`2.1-2.4` / `2.1.0~2.4.0` / `1.6`(缺第三段)都會被擋 |
-| **Check changelogs** | `SKILL.md 在 push range 內動過,但 version 字串沒變` | 編 SKILL.md frontmatter 的 version、補對應 CHANGELOG 段落,commit push |
-| **Check changelogs** | `CHANGELOG.md 不存在` | 通常是新 skill 直接 push 沒跑 prepare,本地跑一次 prepare 補上 |
-| **Validate skills** | `frontmatter.category: Required` | SKILL.md frontmatter 加一行 `category: <值>`,合法值見場景 A step 2 |
-| **Validate skills** | `frontmatter.version: ...semver...` | version 必須是 `"X.Y.Z"` 純數字三段,不能是 `"2.7"` 或 `"v2.7.2"` |
-| **Validate skills** | `frontmatter.X: ...`(其他欄位) | 看訊息修對應 skill 的 SKILL.md frontmatter |
-| **Validate skills** | `related: "X" does not exist` | frontmatter 的 `related:` 引用了不存在的 skill,改正名稱或移除 |
-| **Package skill zips** | 通常不會炸 | log 截給維護者 |
-
-修完直接 push,CI 自動再跑。
+| Check changelogs | `CHANGELOG.md 缺 vX.Y.Z 段落` | 補 `.lion-stage/release-notes.json` 後跑 `npm run release:apply`，或手動補 `## X.Y.Z - YYYY-MM-DD` 段落 |
+| Check changelogs | `SKILL.md 在 push range 內動過，但 version 字串沒變` | 該 skill 有行為變更但沒 bump version；重跑 `release:plan` / `release:apply` |
+| Check changelogs | `CHANGELOG.md 不存在` | 新 skill 沒完成 release:apply |
+| Validate skills | `frontmatter.category` | SKILL.md frontmatter 補合法 category |
+| Validate skills | `frontmatter.version` | version 必須是 `X.Y.Z` 三段純數字 |
+| Validate skills | `related: "X" does not exist` | 修正或移除 related |
+| Validate skills | `description still contains TODO placeholder` | intake 只補了 TODO，需要回頭寫正式 description |
+| Validate skills | `references/... must be a .md file` | references 底下只放 markdown；其他資源放 assets |
 
 ---
 
 ## 三條鐵律
 
-1. **不要手動改 SKILL.md 的 version 字串**——讓 prepare 改
-2. **不要手動建 CHANGELOG.md**——讓 prepare 建
-3. **不要走 GitHub 網頁拖檔上傳**——繞過 prepare,version/CHANGELOG 一定對不上,CI 一定擋
-
-例外:CI 紅了要在 PR/main 上手動補 CHANGELOG 段落時(場景 fail 表第一條)允許手動編輯。
+1. 新 skill 先進 `incoming/`，再由 `intake` 進 `skills/`
+2. 批次或大 diff 不用 `release:quick`，先 `release:plan`，再讓 AI 產 JSON
+3. 不要讓 AI 直接改 repo 檔案；AI 只產 `release-notes.json`，實際改檔由 `release:apply` 做
 
 ---
 
 ## PowerShell 寫含中文檔案的安全方式
 
-PowerShell 預設 console code page 不是 UTF-8。**直接用 here-string + `Out-File -Encoding utf8` 寫含中文的檔案,內容會壞**——你會看到 `??銝(?折撌脰翮隞?` 這種亂碼,而且**檔案本體真的壞了**,不是顯示問題。
+PowerShell 預設 console code page 不是 UTF-8。直接用 here-string + `Out-File -Encoding utf8` 寫含中文檔案，可能造成亂碼。
 
-**安全做法(三選一)**:
+安全做法：
 
-1. **讓 AI(Claude / ChatGPT)產出檔案 → 下載 → 拖檔覆蓋**——最穩,瀏覽器是 byte-for-byte 下載,不會破壞 UTF-8。
-2. **用 VSCode 編輯**——預設 UTF-8,存檔不會壞。記事本則要在「另存新檔」時手動選 `UTF-8` 編碼(不是 `UTF-8 with BOM`)。
-3. **若一定要用 PowerShell**,用 `[System.IO.File]::WriteAllText` + `UTF8Encoding($false)`:
+1. 讓 AI 產出檔案，下載後覆蓋
+2. 用 VSCode 編輯，確認 UTF-8
+3. 若一定要用 PowerShell，用 `[System.IO.File]::WriteAllText` + `UTF8Encoding($false)`
 
 ```powershell
-$path = "skills\<name>\CHANGELOG.md"
+$path = ".lion-stage\release-notes.json"
 $content = @"
-# Changelog - <name>
-
-## X.Y.Z - YYYY-MM-DD
-<英文摘要先 here-string 沒問題,中文摘要建議另開編輯器寫>
+{
+  ""entries"": []
+}
 "@
 [System.IO.File]::WriteAllText((Join-Path $PWD $path), $content, [System.Text.UTF8Encoding]::new($false))
 ```
-
-**驗證檔案沒壞**(不要用 `type`——console 顯示亂碼不代表檔案壞):
-
-```powershell
-chcp 65001  # console 切 UTF-8
-Get-Content skills\<name>\CHANGELOG.md -Encoding UTF8
-```
-
-`Get-Content -Encoding UTF8` 顯示中文正常 = 檔案是好的,git / GitHub / Astro build 都會正確讀。
-
----
-
-## 本地 dev 偶爾踩到、不影響 production 的事
-
-1. **`build:catalog` 看 git HEAD 歷史**——本地測試「改檔 → 還沒 commit → build」時,catalog 看不到 bump,badge 顯示會錯。解法:commit 再 build。
-2. **本地單跑 `build:catalog` 沒先跑 `build:zips`** 會得到 `zipSize: 0`。一條龍跑 `npm run build` 不會踩到。
-3. **PowerShell 顯示 commit message 中文亂碼**——git 內部存的是正確 UTF-8,GitHub 網頁上看是正常的。
-4. **prepare 偵測到一堆「新發布」的 skill**——可能兩種原因:
-   - **你的 base ref(`origin/main`)還沒包含這些 skill**:確認你在 main 分支且 `git fetch origin` + `git pull origin main` 跑過再試
-   - **prepare 內部呼叫 git 找 `origin/main` 失敗、退而求其次用初始 commit 當基準**:會看到訊息 `⚠ origin/main 不存在(首次 push?),改用首次 commit 作為比較基準`。但其實 origin/main 在(`git rev-parse origin/main` 認得),這是 prepare 的 bug。**workaround**:不在意的 skill,在「變更摘要」那關輸入**空字串 + Enter** 就會放棄該 skill,只認真填你要上的那一個
-5. **prepare 沒看到新 skill**——新 skill 沒先 `git add`,prepare 用 git diff 找改動看不到 untracked。先 `git add skills/<name>/` 再跑
 
 ---
 
 ## 一張流程圖
 
-```
-┌─────────────────────────────────────────────┐
-│ 動 skill 檔案(自己寫 / 解作者 zip 進去)         │
-└────────────────────┬────────────────────────┘
-                     ↓
-┌─────────────────────────────────────────────┐
-│ git add skills/<name>/  ← 新 skill 必須先 add │
-└────────────────────┬────────────────────────┘
-                     ↓
-┌─────────────────────────────────────────────┐
-│ npm run prepare                              │
-│ ├─ 對比 origin/main 找改動                     │
-│ ├─ 問你版號 + 摘要                             │
-│ ├─ 自動寫 SKILL.md (version) + CHANGELOG.md   │
-│ └─ 大 diff 吐 .lion-stage/*.md 給 Claude 整理 │
-└────────────────────┬────────────────────────┘
-                     ↓
-            (大 diff 時:貼 Claude 整理回填)
-                     ↓
-┌─────────────────────────────────────────────┐
-│ git add -A && git commit && git push         │
-└────────────────────┬────────────────────────┘
-                     ↓
-┌─────────────────────────────────────────────┐
-│ GitHub Actions(自動):                       │
-│ ├─ validate skills                          │
-│ ├─ check:changelogs ← Layer 2 守門           │
-│ ├─ build:zips                               │
-│ ├─ build:catalog                            │
-│ ├─ build:site (Astro)                       │
-│ └─ deploy to GitHub Pages                   │
-└────────────────────┬────────────────────────┘
-                     ↓
-   https://vincenthsiehisme.github.io/lion-skill-library/
+```text
+作者交 skill / 你修改 skill
+  ↓
+新 skill：incoming/ → npm run intake
+既有 skill：直接改 skills/<name>/
+  ↓
+npm run release:plan
+  ↓
+AI 讀 release-plan.md，產 release-notes.json
+  ↓
+npm run release:apply
+  ↓
+npm run build
+  ↓
+git add -A && git commit && git push
+  ↓
+GitHub Actions deploy
 ```

@@ -7,11 +7,13 @@
  * 3. frontmatter.name === 資料夾名
  * 4. related 引用的 skill 真的存在
  * 5. 沒有 _template 以外的「保留」名稱
+ * 6. description 不可仍是 TODO 佔位
+ * 7. references/ 底下若有檔案，必須是 .md
  *
  * Exit 1 if any error, 0 if all pass.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import matter from 'gray-matter';
 import { SkillFrontmatterSchema } from './schema.js';
@@ -29,6 +31,32 @@ function listSkillFolders(): string[] {
     const fullPath = join(SKILLS_DIR, name);
     return statSync(fullPath).isDirectory();
   });
+}
+
+
+function validateReferencesAreMarkdown(folderName: string): string[] {
+  const errors: string[] = [];
+  const referencesPath = join(SKILLS_DIR, folderName, 'references');
+  if (!existsSync(referencesPath)) return errors;
+  if (!statSync(referencesPath).isDirectory()) return errors;
+
+  const walk = (dir: string, relativeDir: string): void => {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(fullPath, relativePath);
+        continue;
+      }
+      if (entry.isFile() && !entry.name.toLowerCase().endsWith('.md')) {
+        errors.push(`references/${relativePath} must be a .md file`);
+      }
+    }
+  };
+
+  walk(referencesPath, '');
+  return errors;
 }
 
 function validateSkill(folderName: string, allFolderNames: string[]): ValidationResult {
@@ -69,6 +97,14 @@ function validateSkill(folderName: string, allFolderNames: string[]): Validation
       errors.push(`related: "${rel}" does not exist under skills/`);
     }
   }
+
+  // 5. description should not remain TODO placeholder
+  if (fm.description.includes('TODO:')) {
+    errors.push('description still contains TODO placeholder');
+  }
+
+  // 6. references should only contain markdown files
+  errors.push(...validateReferencesAreMarkdown(folderName));
 
   return { skill: folderName, errors };
 }

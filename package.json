@@ -4,13 +4,16 @@
   "private": true,
   "description": "雄獅內部 Claude Skill 分發平台",
   "scripts": {
-    "prepare": "tsx scripts/prepare-release.ts",
+    "intake": "tsx scripts/intake-skill.ts",
+    "release:plan": "tsx scripts/release-plan.ts",
+    "release:apply": "tsx scripts/release-apply.ts",
+    "release:quick": "tsx scripts/prepare-release.ts",
     "validate": "tsx scripts/validate.ts",
     "check:changelogs": "tsx scripts/check-changelogs.ts",
     "build:zips": "tsx scripts/package-skills.ts",
     "build:catalog": "tsx scripts/build-catalog.ts",
     "build:site": "cd site && npm run build",
-    "build": "npm run validate && npm run build:zips && npm run build:catalog && npm run build:site",
+    "build": "npm run validate && npm run check:changelogs && npm run build:zips && npm run build:catalog && npm run build:site",
     "dev": "cd site && npm run dev",
     "preview": "cd site && npm run preview"
   },
